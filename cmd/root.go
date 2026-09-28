@@ -8,9 +8,8 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "kscript-go",
+	Use:   "kscript",
 	Short: "KrabbaScript compiler",
-	Long:  "A KrabbaScript compiler in Go",
 }
 
 func Execute() {
