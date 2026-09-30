@@ -23,7 +23,7 @@ type Lexer struct {
 	numErrors int
 }
 
-func (l *Lexer) peek() (byte, bool) {
+func (l *Lexer) current() (byte, bool) {
 	if l.pos >= len(l.fileCtx) {
 		return 0, false
 	}
@@ -158,7 +158,7 @@ func (l *Lexer) GetErrors() int {
 func (l *Lexer) Scan() []Token {
 	var toks []Token
 	for {
-		c, ok := l.peek()
+		c, ok := l.current()
 		if !ok { // We hit EOF
 			break
 		}
@@ -168,7 +168,7 @@ func (l *Lexer) Scan() []Token {
 
 			// If it's a letter then consume it into a buffer
 			for {
-				c, ok := l.peek()
+				c, ok := l.current()
 
 				// A literal may contain underscores and numbers, so check for those too
 				if !ok || (!unicode.IsLetter(rune(c)) && c != '_' && !unicode.IsDigit(rune(c))) {
@@ -208,7 +208,7 @@ func (l *Lexer) Scan() []Token {
 			l.consume()
 		} else if c == '#' {
 			for {
-				c, ok := l.peek()
+				c, ok := l.current()
 
 				if !ok || c == '\n' {
 					break
@@ -220,7 +220,7 @@ func (l *Lexer) Scan() []Token {
 			startL, startC := l.line, l.column // Save the position
 
 			for {
-				c, ok := l.peek()
+				c, ok := l.current()
 
 				if !ok || (!unicode.IsDigit(rune(c)) && c != '.') {
 					break
@@ -274,7 +274,7 @@ func (l *Lexer) Scan() []Token {
 		} else { // Handle symbols
 			startL, startC := l.line, l.column
 
-			c1, ok := l.peek()
+			c1, ok := l.current()
 			if !ok {
 				break // EOF
 			}
@@ -315,7 +315,7 @@ func (l *Lexer) Scan() []Token {
 				l.consume()
 
 				for {
-					c, ok := l.peek()
+					c, ok := l.current()
 					if !ok || c == '"' {
 						break
 					}
@@ -324,7 +324,7 @@ func (l *Lexer) Scan() []Token {
 					l.consume()
 				}
 
-				c, ok := l.peek()
+				c, ok := l.current()
 				if !ok || c != '"' {
 					l.numErrors++
 					if c != 0 {
@@ -356,5 +356,10 @@ func (l *Lexer) Scan() []Token {
 		}
 	}
 
+	toks = append(toks, Token{
+		Line:   l.line,
+		Column: l.column,
+		Type:   TokenEof,
+	})
 	return toks
 }

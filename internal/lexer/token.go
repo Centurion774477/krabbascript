@@ -87,6 +87,11 @@ const (
 	TokenClosedSqBrack
 
 	TokenDot
+	TokenGreaterThan
+	TokenLessThan
+
+	TokenLessEq
+	TokenGreaterEq
 
 	// Compiler stuff
 	TokenLiteral
@@ -95,7 +100,7 @@ const (
 	TokenFloatLiteral
 
 	TokenNone
-	TokenEOF
+	TokenEof
 )
 
 func (tt TokenType) String() string {
@@ -119,17 +124,17 @@ func (tt TokenType) String() string {
 		TokenImport: "import",
 
 		// Types
-		TokenBool: "bool",
-		TokenStr:  "str",
-		TokenI64:  "i64",
-		TokenI32:  "i32",
-		TokenI16:  "i16",
-		TokenI8:   "i8",
-		TokenU64:  "u64",
-		TokenU32:  "u32",
-		TokenU16:  "u16",
-		TokenU8:   "u8",
-		TokenAny:  "any",
+		TokenBool: "Bool",
+		TokenStr:  "Str",
+		TokenI64:  "I64",
+		TokenI32:  "I32",
+		TokenI16:  "I16",
+		TokenI8:   "I8",
+		TokenU64:  "U64",
+		TokenU32:  "U32",
+		TokenU16:  "U16",
+		TokenU8:   "U8",
+		TokenAny:  "Any",
 
 		// Symbols
 		TokenPlus:          "+",
@@ -164,6 +169,10 @@ func (tt TokenType) String() string {
 		TokenOpenSqBrack:   "[",
 		TokenClosedSqBrack: "]",
 		TokenDot:           ".",
+		TokenLessThan:      "<",
+		TokenGreaterThan:   ">",
+		TokenLessEq:        "<=",
+		TokenGreaterEq:     ">=",
 
 		// Compiler stuff
 		TokenLiteral:      "literal",
@@ -171,7 +180,7 @@ func (tt TokenType) String() string {
 		TokenNumLiteral:   "num literal",
 		TokenFloatLiteral: "float literal",
 		TokenNone:         "none",
-		TokenEOF:          "eof",
+		TokenEof:          "eof",
 	}
 
 	if int(tt) >= 0 && int(tt) < len(tokens) {

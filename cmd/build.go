@@ -3,7 +3,9 @@ package cmd
 import (
 	"fmt"
 	"kscript/internal/lexer"
+	"kscript/internal/parser"
 	"kscript/tools"
+	"os"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -34,12 +36,29 @@ var buildCmd = &cobra.Command{
 		}
 
 		if errs := l.GetErrors(); errs != 0 {
-			fmt.Print("kscript-go: ")
+			fmt.Print("kscript: ")
 
 			color.Set(color.FgRed)
 			defer color.Unset()
 			fmt.Printf("compilation failed with %d error(s)\n", errs)
+
+			os.Exit(1)
 		}
+
+		p := parser.NewParser(toks, dir)
+		ast := p.Parse()
+
+		if errs := p.GetErrors(); errs != 0 {
+			fmt.Print("kscript: ")
+
+			color.Set(color.FgRed)
+			defer color.Unset()
+			fmt.Printf("compilation failed with %d error(s)\n", errs)
+
+			os.Exit(1)
+		}
+
+		ast.Print()
 
 		return nil
 	},
