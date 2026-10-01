@@ -39,8 +39,8 @@ var buildCmd = &cobra.Command{
 			fmt.Print("kscript: ")
 
 			color.Set(color.FgRed)
-			defer color.Unset()
 			fmt.Printf("compilation failed with %d error(s)\n", errs)
+			color.Unset()
 
 			os.Exit(1)
 		}
@@ -52,8 +52,8 @@ var buildCmd = &cobra.Command{
 			fmt.Print("kscript: ")
 
 			color.Set(color.FgRed)
-			defer color.Unset()
 			fmt.Printf("compilation failed with %d error(s)\n", errs)
+			color.Unset()
 
 			os.Exit(1)
 		}
