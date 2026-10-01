@@ -147,8 +147,97 @@ func NewLexer(file string) (*Lexer, error) {
 			"[":  TokenOpenSqBrack,
 			"]":  TokenClosedSqBrack,
 			".":  TokenDot,
+
+			"<":  TokenLessThan,
+			">":  TokenGreaterThan,
+			"<=": TokenLessEq,
+			">=": TokenGreaterEq,
 		},
 	}, nil
+}
+
+func NewLexerFromStr(src string, fName string) Lexer {
+	ctx := []byte(src)
+
+	return Lexer{
+		line:    1,
+		column:  1,
+		file:    fName,
+		fileCtx: ctx,
+		buffer:  bytes.Buffer{},
+
+		keywords: map[string]TokenType{
+			// Keywords
+			"var":    TokenVar,
+			"val":    TokenVal,
+			"func":   TokenFunc,
+			"mod":    TokenMod,
+			"ret":    TokenRet,
+			"if":     TokenIf,
+			"elif":   TokenElif,
+			"else":   TokenElse,
+			"while":  TokenWhile,
+			"for":    TokenFor,
+			"loop":   TokenLoop,
+			"repeat": TokenRepeat,
+			"until":  TokenUntil,
+			"when":   TokenWhen,
+			"struct": TokenStruct,
+			"import": TokenImport,
+
+			// Types
+			"I64":  TokenI64,
+			"I32":  TokenI32,
+			"I16":  TokenI16,
+			"I8":   TokenI8,
+			"U64":  TokenU64,
+			"U32":  TokenU32,
+			"U16":  TokenU16,
+			"U8":   TokenU8,
+			"Any":  TokenAny,
+			"Str":  TokenStr,
+			"Bool": TokenBool,
+		},
+
+		symbols: map[string]TokenType{
+			"+":  TokenPlus,
+			"++": TokenPlusPlus,
+			"+=": TokenPlusEq,
+			"-":  TokenMinus,
+			"--": TokenMinusMinus,
+			"-=": TokenMinusEq,
+			"*":  TokenMul,
+			"*=": TokenMulEq,
+			"/":  TokenDiv,
+			"/=": TokenDivEq,
+			"=":  TokenEq,
+			"==": TokenEqEq,
+			"!=": TokenNotEq,
+			"!":  TokenNot,
+			"&":  TokenBand,
+			"|":  TokenBor,
+			"^":  TokenBxor,
+			"~":  TokenBnot,
+			"&=": TokenBandEq,
+			"|=": TokenBorEq,
+			"^=": TokenBxorEq,
+			"->": TokenArrow,
+			",":  TokenComma,
+			";":  TokenSemi,
+			":":  TokenColon,
+			"(":  TokenOpenParen,
+			")":  TokenClosedParen,
+			"{":  TokenOpenBrack,
+			"}":  TokenClosedBrack,
+			"[":  TokenOpenSqBrack,
+			"]":  TokenClosedSqBrack,
+			".":  TokenDot,
+			"<":  TokenLessThan,
+			">":  TokenGreaterThan,
+			"<=": TokenLessEq,
+			">=": TokenGreaterEq,
+		},
+	}
 }
 
 func (l *Lexer) GetErrors() int {
@@ -236,7 +325,7 @@ func (l *Lexer) Scan() []Token {
 
 				if err != nil {
 					l.numErrors++
-					fmt.Printf("kscript-go: %s: %s:%d:%d: %v\n", color.RedString("error"), l.file, startL, startC, err)
+					fmt.Printf("kscript: %s: %s:%d:%d: %v\n", color.RedString("error"), l.file, startL, startC, err)
 
 					l.buffer.Reset()
 				} else {
@@ -256,7 +345,7 @@ func (l *Lexer) Scan() []Token {
 
 				if err != nil {
 					l.numErrors++
-					fmt.Printf("kscript-go: error: %s:%d:%d: %v\n", l.file, startL, startC, err)
+					fmt.Printf("kscript: error: %s:%d:%d: %v\n", l.file, startL, startC, err)
 
 					l.buffer.Reset()
 				} else {
@@ -328,9 +417,9 @@ func (l *Lexer) Scan() []Token {
 				if !ok || c != '"' {
 					l.numErrors++
 					if c != 0 {
-						fmt.Printf("kscript-go: %s: %s:%d:%d: expected \", got %s\n", color.RedString("error"), l.file, startL, startC, string(c))
+						fmt.Printf("kscript: %s: %s:%d:%d: expected \", got %s\n", color.RedString("error"), l.file, startL, startC, string(c))
 					} else {
-						fmt.Printf("kscript-go: %s: %s:%d:%d: expected \", got <eof>\n", color.RedString("error"), l.file, startL, startC)
+						fmt.Printf("kscript: %s: %s:%d:%d: expected \", got <eof>\n", color.RedString("error"), l.file, startL, startC)
 					}
 
 					continue
@@ -349,7 +438,7 @@ func (l *Lexer) Scan() []Token {
 				l.buffer.Reset()
 			} else {
 				l.numErrors++
-				fmt.Printf("kscript-go: %s: %s:%d:%d: unknown symbol %q\n", color.RedString("error"), l.file, startL, startC, oneChar)
+				fmt.Printf("kscript: %s: %s:%d:%d: unknown symbol %q\n", color.RedString("error"), l.file, startL, startC, oneChar)
 
 				l.consume()
 			}
