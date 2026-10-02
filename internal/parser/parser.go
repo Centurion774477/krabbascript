@@ -23,6 +23,41 @@ type Parser struct {
 	bindings map[lexer.TokenType]Binding
 }
 
+func newBindings() map[lexer.TokenType]Binding {
+	return map[lexer.TokenType]Binding{
+		// Addition and subtraction (+,-)
+		lexer.TokenPlus:  {BindingPrecedence: PrecedenceTerm, BindingSide: LeftSide},
+		lexer.TokenMinus: {BindingPrecedence: PrecedenceTerm, BindingSide: LeftSide},
+		// Multiplication and division (*,/)
+		lexer.TokenMul: {BindingPrecedence: PrecedenceFactor, BindingSide: LeftSide},
+		lexer.TokenDiv: {BindingPrecedence: PrecedenceFactor, BindingSide: LeftSide},
+		// Compasion (==, !=, <, >, >=, <=)
+		lexer.TokenEqEq:        {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
+		lexer.TokenNotEq:       {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
+		lexer.TokenLessThan:    {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
+		lexer.TokenGreaterThan: {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
+		lexer.TokenLessEq:      {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
+		lexer.TokenGreaterEq:   {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
+		// Bitwise (&,|,^)
+		lexer.TokenBand: {BindingPrecedence: PrecedenceBitwise, BindingSide: LeftSide},
+		lexer.TokenBor:  {BindingPrecedence: PrecedenceBitwise, BindingSide: LeftSide},
+		lexer.TokenBxor: {BindingPrecedence: PrecedenceBitwise, BindingSide: LeftSide},
+		// Assignment (=,+=,-=,/=,*=,&=,|=,^=)
+		lexer.TokenEq:      {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
+		lexer.TokenPlusEq:  {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
+		lexer.TokenMinusEq: {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
+		lexer.TokenDivEq:   {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
+		lexer.TokenMulEq:   {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
+		lexer.TokenBandEq:  {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
+		lexer.TokenBorEq:   {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
+		lexer.TokenBxorEq:  {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
+		// Postfix ((), [],.)
+		lexer.TokenOpenParen:   {BindingPrecedence: PrecedencePostfix, BindingSide: LeftSide},
+		lexer.TokenOpenSqBrack: {BindingPrecedence: PrecedencePostfix, BindingSide: LeftSide},
+		lexer.TokenDot:         {BindingPrecedence: PrecedencePostfix, BindingSide: LeftSide},
+	}
+}
+
 func NewParser(toks []lexer.Token, file string) Parser {
 	return Parser{
 		line:   1,
@@ -34,38 +69,7 @@ func NewParser(toks []lexer.Token, file string) Parser {
 			toks: toks,
 		},
 		numErrors: 0,
-		bindings: map[lexer.TokenType]Binding{
-			// Addition and subtraction (+,-)
-			lexer.TokenPlus:  {BindingPrecedence: PrecedenceTerm, BindingSide: LeftSide},
-			lexer.TokenMinus: {BindingPrecedence: PrecedenceTerm, BindingSide: LeftSide},
-			// Multiplication and division (*,/)
-			lexer.TokenMul: {BindingPrecedence: PrecedenceFactor, BindingSide: LeftSide},
-			lexer.TokenDiv: {BindingPrecedence: PrecedenceFactor, BindingSide: LeftSide},
-			// Compasion (==, !=, <, >, >=, <=)
-			lexer.TokenEqEq:        {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
-			lexer.TokenNotEq:       {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
-			lexer.TokenLessThan:    {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
-			lexer.TokenGreaterThan: {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
-			lexer.TokenLessEq:      {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
-			lexer.TokenGreaterEq:   {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
-			// Bitwise (&,|,^)
-			lexer.TokenBand: {BindingPrecedence: PrecedenceBitwise, BindingSide: LeftSide},
-			lexer.TokenBor:  {BindingPrecedence: PrecedenceBitwise, BindingSide: LeftSide},
-			lexer.TokenBxor: {BindingPrecedence: PrecedenceBitwise, BindingSide: LeftSide},
-			// Assignment (=,+=,-=,/=,*=,&=,|=,^=)
-			lexer.TokenEq:      {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
-			lexer.TokenPlusEq:  {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
-			lexer.TokenMinusEq: {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
-			lexer.TokenDivEq:   {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
-			lexer.TokenMulEq:   {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
-			lexer.TokenBandEq:  {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
-			lexer.TokenBorEq:   {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
-			lexer.TokenBxorEq:  {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
-			// Postfix ((), [],.)
-			lexer.TokenOpenParen:   {BindingPrecedence: PrecedencePostfix, BindingSide: LeftSide},
-			lexer.TokenOpenSqBrack: {BindingPrecedence: PrecedencePostfix, BindingSide: LeftSide},
-			lexer.TokenDot:         {BindingPrecedence: PrecedencePostfix, BindingSide: LeftSide},
-		},
+		bindings:  newBindings(),
 	}
 }
 
