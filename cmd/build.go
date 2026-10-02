@@ -31,9 +31,9 @@ var buildCmd = &cobra.Command{
 		l, _ := lexer.NewLexer(dir)
 		toks := l.Scan()
 
-		for _, tok := range toks {
-			fmt.Println(tok)
-		}
+		// for _, tok := range toks {
+		// 	fmt.Println(tok)
+		// }
 
 		if errs := l.GetErrors(); errs != 0 {
 			fmt.Print("kscript: ")

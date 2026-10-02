@@ -11,27 +11,30 @@ func _() {
 	_ = x[NodeVariableDef-0]
 	_ = x[NodeVariableDec-1]
 	_ = x[NodeValueDef-2]
-	_ = x[NodeRoot-3]
-	_ = x[NodeBinOp-4]
-	_ = x[NodeNumLit-5]
-	_ = x[NodeLit-6]
-	_ = x[NodeIndex-7]
-	_ = x[NodeI64Type-8]
-	_ = x[NodeI32Type-9]
-	_ = x[NodeI16Type-10]
-	_ = x[NodeI8Type-11]
-	_ = x[NodeU64Type-12]
-	_ = x[NodeU32Type-13]
-	_ = x[NodeU16Type-14]
-	_ = x[NodeU8Type-15]
-	_ = x[NodeStrType-16]
-	_ = x[NodeBoolType-17]
-	_ = x[NodeAnyType-18]
+	_ = x[NodeIfStatement-3]
+	_ = x[NodeElsifStatement-4]
+	_ = x[NodeElseStatement-5]
+	_ = x[NodeRoot-6]
+	_ = x[NodeBinOp-7]
+	_ = x[NodeNumLit-8]
+	_ = x[NodeLit-9]
+	_ = x[NodeIndex-10]
+	_ = x[NodeI64Type-11]
+	_ = x[NodeI32Type-12]
+	_ = x[NodeI16Type-13]
+	_ = x[NodeI8Type-14]
+	_ = x[NodeU64Type-15]
+	_ = x[NodeU32Type-16]
+	_ = x[NodeU16Type-17]
+	_ = x[NodeU8Type-18]
+	_ = x[NodeStrType-19]
+	_ = x[NodeBoolType-20]
+	_ = x[NodeAnyType-21]
 }
 
-const _NodeType_name = "variable defvariable decvalue defrootbin opnum literalliteralindexI64 typeI32 typeI16 typeI8 typeU64 typeU32 typeU16 typeU8 typeStr typeBool typeAny type"
+const _NodeType_name = "variable defvariable decvalue defif statementelsif statementNodeElseStatementrootbin opnum literalliteralindexI64 typeI32 typeI16 typeI8 typeU64 typeU32 typeU16 typeU8 typeStr typeBool typeAny type"
 
-var _NodeType_index = [...]uint8{0, 12, 24, 33, 37, 43, 54, 61, 66, 74, 82, 90, 97, 105, 113, 121, 128, 136, 145, 153}
+var _NodeType_index = [...]uint8{0, 12, 24, 33, 45, 60, 77, 81, 87, 98, 105, 110, 118, 126, 134, 141, 149, 157, 165, 172, 180, 189, 197}
 
 func (i NodeType) String() string {
 	idx := int(i) - 0

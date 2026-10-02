@@ -52,7 +52,7 @@ func TestKeywords(t *testing.T) {
 		{"mod", "mod", TokenMod},
 		{"ret", "ret", TokenRet},
 		{"if", "if", TokenIf},
-		{"elif", "elif", TokenElif},
+		{"elsif", "elsif", TokenElsif},
 		{"else", "else", TokenElse},
 		{"while", "while", TokenWhile},
 		{"for", "for", TokenFor},

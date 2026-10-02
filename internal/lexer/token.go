@@ -13,7 +13,7 @@ const (
 	TokenRet
 
 	TokenIf
-	TokenElif
+	TokenElsif
 	TokenElse
 
 	TokenWhile
@@ -112,7 +112,7 @@ func (tt TokenType) String() string {
 		TokenMod:    "mod",
 		TokenRet:    "ret",
 		TokenIf:     "if",
-		TokenElif:   "elif",
+		TokenElsif:  "elsif",
 		TokenElse:   "else",
 		TokenWhile:  "while",
 		TokenFor:    "for",

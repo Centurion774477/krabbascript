@@ -12,7 +12,10 @@ const (
 	NodeVariableDef NodeType = iota // variable def
 	NodeVariableDec                 // variable dec
 
-	NodeValueDef // value def
+	NodeValueDef       // value def
+	NodeIfStatement    // if statement
+	NodeElsifStatement // elsif statement
+	NodeElseStatement
 
 	// Compiler stuff
 	NodeRoot   // root
