@@ -15,7 +15,10 @@ const (
 	NodeValueDef       // value def
 	NodeIfStatement    // if statement
 	NodeElsifStatement // elsif statement
-	NodeElseStatement
+	NodeElseStatement  // else statement
+
+	NodeFieldDec  // field dec
+	NodeStructDec // struct dec
 
 	// Compiler stuff
 	NodeRoot   // root
