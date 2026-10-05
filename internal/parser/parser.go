@@ -23,6 +23,41 @@ type Parser struct {
 	bindings map[lexer.TokenType]Binding
 }
 
+func newBindings() map[lexer.TokenType]Binding {
+	return map[lexer.TokenType]Binding{
+		// Addition and subtraction (+,-)
+		lexer.TokenPlus:  {BindingPrecedence: PrecedenceTerm, BindingSide: LeftSide},
+		lexer.TokenMinus: {BindingPrecedence: PrecedenceTerm, BindingSide: LeftSide},
+		// Multiplication and division (*,/)
+		lexer.TokenMul: {BindingPrecedence: PrecedenceFactor, BindingSide: LeftSide},
+		lexer.TokenDiv: {BindingPrecedence: PrecedenceFactor, BindingSide: LeftSide},
+		// Compasion (==, !=, <, >, >=, <=)
+		lexer.TokenEqEq:        {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
+		lexer.TokenNotEq:       {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
+		lexer.TokenLessThan:    {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
+		lexer.TokenGreaterThan: {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
+		lexer.TokenLessEq:      {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
+		lexer.TokenGreaterEq:   {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
+		// Bitwise (&,|,^)
+		lexer.TokenBand: {BindingPrecedence: PrecedenceBitwise, BindingSide: LeftSide},
+		lexer.TokenBor:  {BindingPrecedence: PrecedenceBitwise, BindingSide: LeftSide},
+		lexer.TokenBxor: {BindingPrecedence: PrecedenceBitwise, BindingSide: LeftSide},
+		// Assignment (=,+=,-=,/=,*=,&=,|=,^=)
+		lexer.TokenEq:      {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
+		lexer.TokenPlusEq:  {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
+		lexer.TokenMinusEq: {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
+		lexer.TokenDivEq:   {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
+		lexer.TokenMulEq:   {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
+		lexer.TokenBandEq:  {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
+		lexer.TokenBorEq:   {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
+		lexer.TokenBxorEq:  {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
+		// Postfix ((), [],.)
+		lexer.TokenOpenParen:   {BindingPrecedence: PrecedencePostfix, BindingSide: LeftSide},
+		lexer.TokenOpenSqBrack: {BindingPrecedence: PrecedencePostfix, BindingSide: LeftSide},
+		lexer.TokenDot:         {BindingPrecedence: PrecedencePostfix, BindingSide: LeftSide},
+	}
+}
+
 func NewParser(toks []lexer.Token, file string) Parser {
 	return Parser{
 		line:   1,
@@ -34,38 +69,7 @@ func NewParser(toks []lexer.Token, file string) Parser {
 			toks: toks,
 		},
 		numErrors: 0,
-		bindings: map[lexer.TokenType]Binding{
-			// Addition and subtraction (+,-)
-			lexer.TokenPlus:  {BindingPrecedence: PrecedenceTerm, BindingSide: LeftSide},
-			lexer.TokenMinus: {BindingPrecedence: PrecedenceTerm, BindingSide: LeftSide},
-			// Multiplication and division (*,/)
-			lexer.TokenMul: {BindingPrecedence: PrecedenceFactor, BindingSide: LeftSide},
-			lexer.TokenDiv: {BindingPrecedence: PrecedenceFactor, BindingSide: LeftSide},
-			// Compasion (==, !=, <, >, >=, <=)
-			lexer.TokenEqEq:        {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
-			lexer.TokenNotEq:       {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
-			lexer.TokenLessThan:    {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
-			lexer.TokenGreaterThan: {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
-			lexer.TokenLessEq:      {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
-			lexer.TokenGreaterEq:   {BindingPrecedence: PrecedenceComparison, BindingSide: LeftSide},
-			// Bitwise (&,|,^)
-			lexer.TokenBand: {BindingPrecedence: PrecedenceBitwise, BindingSide: LeftSide},
-			lexer.TokenBor:  {BindingPrecedence: PrecedenceBitwise, BindingSide: LeftSide},
-			lexer.TokenBxor: {BindingPrecedence: PrecedenceBitwise, BindingSide: LeftSide},
-			// Assignment (=,+=,-=,/=,*=,&=,|=,^=)
-			lexer.TokenEq:      {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
-			lexer.TokenPlusEq:  {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
-			lexer.TokenMinusEq: {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
-			lexer.TokenDivEq:   {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
-			lexer.TokenMulEq:   {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
-			lexer.TokenBandEq:  {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
-			lexer.TokenBorEq:   {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
-			lexer.TokenBxorEq:  {BindingPrecedence: PrecedenceAssignment, BindingSide: RightSide},
-			// Postfix ((), [],.)
-			lexer.TokenOpenParen:   {BindingPrecedence: PrecedencePostfix, BindingSide: LeftSide},
-			lexer.TokenOpenSqBrack: {BindingPrecedence: PrecedencePostfix, BindingSide: LeftSide},
-			lexer.TokenDot:         {BindingPrecedence: PrecedencePostfix, BindingSide: LeftSide},
-		},
+		bindings:  newBindings(),
 	}
 }
 
@@ -75,6 +79,14 @@ func (p *Parser) current() lexer.Token {
 
 func (p *Parser) currentToks(s *TokenStream) lexer.Token {
 	if s.pos >= len(s.toks) {
+		if len(s.toks) == 0 {
+			return lexer.Token{
+				Line:   0,
+				Column: 0,
+				Type:   lexer.TokenEof,
+			}
+		}
+
 		return s.toks[len(s.toks)-1]
 	}
 
@@ -256,7 +268,7 @@ func (p *Parser) convertType(typ lexer.Token) (*Node, error) {
 		n.Type = NodeLit
 		n.Lexeme = typ.Value
 	default:
-		return nil, fmt.Errorf("expected a type, got %s", typ.Type)
+		return nil, fmt.Errorf("%s:%d:%d: expected a type, got %s", p.file, typ.Line, typ.Column, typ.Type)
 	}
 
 	return n, nil
@@ -453,7 +465,8 @@ exit:
 }
 
 func (p *Parser) parseScopeToks(s *TokenStream, what string) (*Node, error) {
-	if err := p.skipToks(s, lexer.TokenOpenBrack); err != nil {
+	err := p.skipToks(s, lexer.TokenOpenBrack)
+	if err != nil {
 		return nil, err
 	}
 
@@ -478,7 +491,8 @@ func (p *Parser) parseScopeToks(s *TokenStream, what string) (*Node, error) {
 		p.consumeToks(s)
 	}
 
-	if err := p.skipToks(s, lexer.TokenClosedBrack); err != nil {
+	err = p.skipToks(s, lexer.TokenClosedBrack)
+	if err != nil {
 		return nil, err
 	}
 
@@ -498,6 +512,135 @@ func (p *Parser) parseScopeToks(s *TokenStream, what string) (*Node, error) {
 	if n == nil && p.GetErrors() > 0 {
 		return nil, fmt.Errorf("failed to parse %s body", what)
 	}
+
+	return n, nil
+}
+
+func (p *Parser) parseStructFieldToks(s *TokenStream) (*Node, error) {
+	err := p.expectToks(s, lexer.TokenLiteral)
+	if err != nil {
+		return nil, err
+	}
+
+	name := p.consumeToks(s)
+
+	err = p.skipToks(s, lexer.TokenColon)
+	if err != nil {
+		return nil, err
+	}
+
+	typ, err := p.convertType(p.currentToks(s))
+	if err != nil {
+		return nil, err
+	}
+
+	p.consumeToks(s)
+
+	err = p.skipToks(s, lexer.TokenSemi)
+	if err != nil {
+		return nil, err
+	}
+
+	n := Node{
+		line:   name.Line,
+		column: name.Column,
+
+		Type:   NodeFieldDec,
+		Lexeme: name.Value,
+
+		Left: typ,
+	}
+
+	return &n, nil
+}
+
+func (p *Parser) parseStructFieldsToks(s *TokenStream) (*Node, error) {
+	node := &Node{
+		ExtraInfo: &NodeInfoBlock{},
+		Type:      NodeStructDec,
+	}
+	for {
+		t := p.currentToks(s)
+		if t.Type == lexer.TokenEof {
+			return node, nil
+		}
+
+		n, err := p.parseStructFieldToks(s)
+		if err != nil {
+			return nil, err
+		}
+
+		p.appendToBlock(node, n)
+	}
+}
+
+func (p *Parser) parseStructScopeToks(s *TokenStream) (*Node, error) {
+	err := p.skipToks(s, lexer.TokenOpenBrack)
+	if err != nil {
+		return nil, err
+	}
+
+	var toks []lexer.Token
+	for {
+		t := p.currentToks(s)
+		if t.Type == lexer.TokenEof || t.Type == lexer.TokenClosedBrack {
+			break
+		}
+
+		toks = append(toks, t)
+		p.consumeToks(s)
+	}
+
+	err = p.skipToks(s, lexer.TokenClosedBrack)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, t := range toks {
+		fmt.Println(t)
+	}
+
+	if len(toks) != 0 {
+
+		last := toks[len(toks)-1]
+		toks = append(toks, lexer.Token{
+			Line:   last.Line,
+			Column: last.Column,
+			Type:   lexer.TokenEof,
+		})
+	}
+
+	stream := TokenStream{
+		toks: toks,
+		pos:  0,
+	}
+	return p.parseStructFieldsToks(&stream)
+}
+
+func (p *Parser) parseStructToks(s *TokenStream) (*Node, error) {
+	start := p.consumeToks(s) // Save this for line, col fields
+
+	err := p.expectToks(s, lexer.TokenLiteral)
+	if err != nil {
+		return nil, err
+	}
+
+	name := p.consumeToks(s) // Save the name too
+
+	n, err := p.parseStructScopeToks(s)
+	if err != nil {
+		return nil, err
+	}
+
+	if n == nil {
+		fmt.Println("nil!")
+		return nil, nil
+	}
+
+	n.line = start.Line
+	n.column = start.Column
+
+	n.Lexeme = name.Value
 
 	return n, nil
 }
@@ -591,6 +734,27 @@ func (p *Parser) GetErrors() int {
 	return p.numErrors
 }
 
+// Will advance the stream until a safe place to continue parsing is reached
+func (p *Parser) sync(s *TokenStream) {
+	p.consumeToks(s)
+
+	for p.currentToks(s).Type != lexer.TokenEof {
+		c := p.currentToks(s).Type
+		if c == lexer.TokenSemi || c == lexer.TokenClosedBrack {
+			p.consumeToks(s)
+			return
+		}
+
+		switch p.currentToks(s).Type {
+		case lexer.TokenVar, lexer.TokenVal, lexer.TokenIf,
+			lexer.TokenElsif, lexer.TokenElse, lexer.TokenStruct:
+			return
+		}
+
+		p.consumeToks(s)
+	}
+}
+
 func (p *Parser) ParseToks(s *TokenStream) *Node {
 	ast := &Node{
 		Type:      NodeRoot,
@@ -611,7 +775,7 @@ loop:
 				fmt.Printf("kscript: %s: %v\n", color.RedString("error"), err)
 
 				p.numErrors++
-				return nil
+				p.sync(s)
 			}
 
 			p.appendToBlock(ast, n)
@@ -621,7 +785,7 @@ loop:
 				fmt.Printf("kscript: %s: %v\n", color.RedString("error"), err)
 
 				p.numErrors++
-				return nil
+				p.sync(s)
 			}
 
 			p.appendToBlock(ast, n)
@@ -631,7 +795,7 @@ loop:
 				fmt.Printf("kscript: %s: %v\n", color.RedString("error"), err)
 
 				p.numErrors++
-				return nil
+				p.sync(s)
 			}
 
 			p.appendToBlock(ast, n)
@@ -641,7 +805,7 @@ loop:
 				fmt.Printf("kscript: %s: %v\n", color.RedString("error"), err)
 
 				p.numErrors++
-				return nil
+				p.sync(s)
 			}
 
 			p.appendToBlock(ast, n)
@@ -651,15 +815,25 @@ loop:
 				fmt.Printf("kscript: %s: %v\n", color.RedString("error"), err)
 
 				p.numErrors++
-				return nil
+				p.sync(s)
+			}
+
+			p.appendToBlock(ast, n)
+		case lexer.TokenStruct:
+			n, err := p.parseStructToks(s)
+			if err != nil {
+				fmt.Printf("kscript: %s: %v\n", color.RedString("error"), err)
+
+				p.numErrors++
+				p.sync(s)
 			}
 
 			p.appendToBlock(ast, n)
 		default:
-			fmt.Printf("kscript: %s: %s:%d:%d: unknown token %s\n", color.RedString("error"), p.file, t.Line, t.Column, t.Type)
+			fmt.Printf("kscript: %s: %s:%d:%d: unexpected token %s\n", color.RedString("error"), p.file, t.Line, t.Column, t.Type)
 			p.numErrors++
 
-			return nil
+			p.sync(s)
 		}
 	}
 
