@@ -16,27 +16,30 @@ func _() {
 	_ = x[NodeElseStatement-5]
 	_ = x[NodeFieldDec-6]
 	_ = x[NodeStructDec-7]
-	_ = x[NodeRoot-8]
-	_ = x[NodeBinOp-9]
-	_ = x[NodeNumLit-10]
-	_ = x[NodeLit-11]
-	_ = x[NodeIndex-12]
-	_ = x[NodeI64Type-13]
-	_ = x[NodeI32Type-14]
-	_ = x[NodeI16Type-15]
-	_ = x[NodeI8Type-16]
-	_ = x[NodeU64Type-17]
-	_ = x[NodeU32Type-18]
-	_ = x[NodeU16Type-19]
-	_ = x[NodeU8Type-20]
-	_ = x[NodeStrType-21]
-	_ = x[NodeBoolType-22]
-	_ = x[NodeAnyType-23]
+	_ = x[NodeListInit-8]
+	_ = x[NodeRoot-9]
+	_ = x[NodeBinOp-10]
+	_ = x[NodeNumLit-11]
+	_ = x[NodeFloatLit-12]
+	_ = x[NodeLit-13]
+	_ = x[NodeStrLit-14]
+	_ = x[NodeIndex-15]
+	_ = x[NodeI64Type-16]
+	_ = x[NodeI32Type-17]
+	_ = x[NodeI16Type-18]
+	_ = x[NodeI8Type-19]
+	_ = x[NodeU64Type-20]
+	_ = x[NodeU32Type-21]
+	_ = x[NodeU16Type-22]
+	_ = x[NodeU8Type-23]
+	_ = x[NodeStrType-24]
+	_ = x[NodeBoolType-25]
+	_ = x[NodeAnyType-26]
 }
 
-const _NodeType_name = "variable defvariable decvalue defif statementelsif statementelse statementfield decstruct decrootbin opnum literalliteralindexI64 typeI32 typeI16 typeI8 typeU64 typeU32 typeU16 typeU8 typeStr typeBool typeAny type"
+const _NodeType_name = "variable defvariable decvalue defif statementelsif statementelse statementfield decstruct declist initrootbin opnum litfloat litlitNodeStrLitindexI64 typeI32 typeI16 typeI8 typeU64 typeU32 typeU16 typeU8 typeStr typeBool typeAny type"
 
-var _NodeType_index = [...]uint8{0, 12, 24, 33, 45, 60, 74, 83, 93, 97, 103, 114, 121, 126, 134, 142, 150, 157, 165, 173, 181, 188, 196, 205, 213}
+var _NodeType_index = [...]uint8{0, 12, 24, 33, 45, 60, 74, 83, 93, 102, 106, 112, 119, 128, 131, 141, 146, 154, 162, 170, 177, 185, 193, 201, 208, 216, 225, 233}
 
 func (i NodeType) String() string {
 	idx := int(i) - 0

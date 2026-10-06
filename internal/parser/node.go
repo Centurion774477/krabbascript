@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=NodeType -linecomment
+//go:generate go tool stringer -type=NodeType -linecomment
 type NodeType int
 
 const (
@@ -19,13 +19,16 @@ const (
 
 	NodeFieldDec  // field dec
 	NodeStructDec // struct dec
+	NodeListInit  // list init
 
 	// Compiler stuff
-	NodeRoot   // root
-	NodeBinOp  // bin op
-	NodeNumLit // num literal
-	NodeLit    // literal
-	NodeIndex  // index
+	NodeRoot     // root
+	NodeBinOp    // bin op
+	NodeNumLit   // num lit
+	NodeFloatLit // float lit
+	NodeLit      // lit
+	NodeStrLit
+	NodeIndex // index
 
 	// Types
 	NodeI64Type // I64 type
