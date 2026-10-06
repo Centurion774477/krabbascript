@@ -23,23 +23,24 @@ func _() {
 	_ = x[NodeFloatLit-12]
 	_ = x[NodeLit-13]
 	_ = x[NodeStrLit-14]
-	_ = x[NodeIndex-15]
-	_ = x[NodeI64Type-16]
-	_ = x[NodeI32Type-17]
-	_ = x[NodeI16Type-18]
-	_ = x[NodeI8Type-19]
-	_ = x[NodeU64Type-20]
-	_ = x[NodeU32Type-21]
-	_ = x[NodeU16Type-22]
-	_ = x[NodeU8Type-23]
-	_ = x[NodeStrType-24]
-	_ = x[NodeBoolType-25]
-	_ = x[NodeAnyType-26]
+	_ = x[NodeArray-15]
+	_ = x[NodeIndex-16]
+	_ = x[NodeI64Type-17]
+	_ = x[NodeI32Type-18]
+	_ = x[NodeI16Type-19]
+	_ = x[NodeI8Type-20]
+	_ = x[NodeU64Type-21]
+	_ = x[NodeU32Type-22]
+	_ = x[NodeU16Type-23]
+	_ = x[NodeU8Type-24]
+	_ = x[NodeStrType-25]
+	_ = x[NodeBoolType-26]
+	_ = x[NodeAnyType-27]
 }
 
-const _NodeType_name = "variable defvariable decvalue defif statementelsif statementelse statementfield decstruct declist initrootbin opnum litfloat litlitNodeStrLitindexI64 typeI32 typeI16 typeI8 typeU64 typeU32 typeU16 typeU8 typeStr typeBool typeAny type"
+const _NodeType_name = "variable defvariable decvalue defif statementelsif statementelse statementfield decstruct declist initrootbin opnum litfloat litlitstr litarrayindexI64 typeI32 typeI16 typeI8 typeU64 typeU32 typeU16 typeU8 typeStr typeBool typeAny type"
 
-var _NodeType_index = [...]uint8{0, 12, 24, 33, 45, 60, 74, 83, 93, 102, 106, 112, 119, 128, 131, 141, 146, 154, 162, 170, 177, 185, 193, 201, 208, 216, 225, 233}
+var _NodeType_index = [...]uint8{0, 12, 24, 33, 45, 60, 74, 83, 93, 102, 106, 112, 119, 128, 131, 138, 143, 148, 156, 164, 172, 179, 187, 195, 203, 210, 218, 227, 235}
 
 func (i NodeType) String() string {
 	idx := int(i) - 0

@@ -40,6 +40,7 @@ const (
 	TokenU8
 
 	TokenAny
+	TokenArr
 
 	// Symbols
 	TokenPlus
@@ -135,6 +136,7 @@ func (tt TokenType) String() string {
 		TokenU16:  "U16",
 		TokenU8:   "U8",
 		TokenAny:  "Any",
+		TokenArr:  "Arr",
 
 		// Symbols
 		TokenPlus:          "+",

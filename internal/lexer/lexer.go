@@ -100,6 +100,7 @@ func newKeywords() map[string]TokenType {
 		"Any":  TokenAny,
 		"Str":  TokenStr,
 		"Bool": TokenBool,
+		"Arr":  TokenArr,
 	}
 }
 
