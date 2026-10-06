@@ -313,13 +313,35 @@ func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int) (*Node,
 
 		left.Left = nType
 	} else {
-		num := p.consumeToks(s)
-		left = &Node{
-			line:   num.Line,
-			column: num.Column,
-			Type:   NodeNumLit,
+		t := p.consumeToks(s)
 
-			Lexeme: num.Value,
+		var nodeType NodeType
+
+		switch t.Type {
+		case lexer.TokenNumLiteral:
+			nodeType = NodeNumLit
+
+		case lexer.TokenFloatLiteral:
+			nodeType = NodeFloatLit
+
+		case lexer.TokenStrLiteral:
+			nodeType = NodeStrLit
+
+		case lexer.TokenLiteral:
+			nodeType = NodeLit
+
+		default:
+			return nil, fmt.Errorf(
+				"%s:%d:%d: unexpected literal %q",
+				p.file, t.Line, t.Column, t.Value,
+			)
+		}
+
+		left = &Node{
+			line:   t.Line,
+			column: t.Column,
+			Type:   nodeType,
+			Lexeme: t.Value,
 		}
 	}
 
