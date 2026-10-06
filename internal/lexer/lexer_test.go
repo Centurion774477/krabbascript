@@ -91,6 +91,7 @@ func TestBuiltInTypes(t *testing.T) {
 		{"U16", "U16", TokenU16},
 		{"U8", "U8", TokenU8},
 		{"Any", "Any", TokenAny},
+		{"Arr", "Arr", TokenArr},
 	}
 
 	for _, tt := range tests {

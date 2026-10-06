@@ -27,8 +27,9 @@ const (
 	NodeNumLit   // num lit
 	NodeFloatLit // float lit
 	NodeLit      // lit
-	NodeStrLit
-	NodeIndex // index
+	NodeStrLit   // str lit
+	NodeArray    // array
+	NodeIndex    // index
 
 	// Types
 	NodeI64Type // I64 type
