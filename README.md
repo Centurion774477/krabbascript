@@ -43,7 +43,7 @@ Quick note on variables: mutate them all you want, but you can't touch the type.
 
 ### Control structures
 
-Once again, like most statically typed and compiled languages, Krabbascript uses curly brackets for its blocks. 
+Also like most statically typed and compiled languages, Krabbascript uses curly brackets for its blocks. 
 However, we won't make you use parens for your conditions. Your welcome.
 
 Krabbascript has a solid arrangement of control structures for you. We've got if-elsif-else blocks, while loops, repeat loops, for loops and when blocks.
@@ -65,7 +65,7 @@ if breakfast {
 Once again, no parens needed.
 
 ```
-while railsIsUnpopular() {
+while railsIsUnpopular {
   rantAboutWhyRailsIsGreat();
 }
 ```
