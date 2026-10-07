@@ -48,7 +48,7 @@ However, we won't make you use parens for your conditions. Your welcome.
 
 Krabbascript has a solid arrangement of control structures for you. We've got if-elsif-else blocks, while loops, repeat loops, for loops and when blocks.
 
-### if-elsif-else blocks
+#### if-elsif-else blocks
 
 ```
 if breakfast {
@@ -60,7 +60,7 @@ if breakfast {
 }
 ```
 
-### while loops
+#### while loops
 
 Once again, no parens needed.
 
@@ -70,7 +70,7 @@ while railsIsUnpopular {
 }
 ```
 
-### repeat loops
+#### repeat loops
 
 In these, you loop now and declare a condition later.
 
@@ -80,7 +80,7 @@ repeat {
 } until railsIsTrending
 ```
 
-### when blocks
+#### when blocks
 
 This is one of the more unique parts of Krabbascript. This is like a switch in nature, but with a slightly different approach.
 
@@ -95,7 +95,7 @@ when language {
 }
 ```
 
-### for loops
+#### for loops
 
 The for loops here are closer to foreach loops, and the design was heavily inspired by Lua.
 
@@ -118,3 +118,78 @@ If you don't want that pesky index variable, feel free to use an underscore in i
 ```
 for _, variable in arrays
 ```
+
+### Types
+
+Krabbascript provides 13 types. Remember that all types are capitalized like nouns.
+
+- Str
+- I64
+- I32
+- I16
+- I8
+- U64
+- U32
+- U16
+- U8
+- Any
+- Bool
+- F64
+- F32
+
+### Structs
+
+You can define a struct like this:
+
+```
+struct User {
+	name: Str;
+  birth: U64;
+}
+```
+
+All struct names must be capitalized; if you were to name a struct `user`, you would be met with an error.
+
+To access a struct's property, use dot notation. For example:
+
+```
+User.name
+```
+
+Here's how you can make an instance of a struct:
+
+```
+val my_user: User = User{
+      name  = “Joe Doe”;
+      birth = 1704;
+};
+```
+
+### Functions
+
+Functions must be declared with a return type. You declare a function like this:
+
+```
+func giveMeACity() -> Str {
+  return "Tampere";
+}
+```
+
+If you wish to return void, you don't have to type out `-> void` -- that would be awful! You just don't add a return type and that symbolizes the function returning void.
+
+You can call a function like 99% of languages:
+
+```
+giveMeACity();
+```
+
+### Comments
+
+Comments are quite simple. They use a single hashtag: `#`. There are no multi-line comments so far.
+
+```
+# Finland gained independence from Russia in 1917.
+```
+
+
+I omitted a lot of the esoteric features like attributes, but you can find information for those in the official documentation.
