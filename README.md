@@ -25,13 +25,13 @@ As with most statically typed and compiled languages, Krabbascript enforces semi
 
 ### Variables
 
-Krabbascript has two options for variables. Naturally, you can have variables, or, you can have values. What's the difference? Variables are mutable -- they can be mutated and reassigned -- values are not. You can declare a variable or value using `var` or `val` respectively, the name of the variable, and then a type. Here's an example:
+Krabbascript has two options for variables. You can have variables, or, you can have values. What's the difference? Variables are mutable -- they can be mutated and reassigned -- values are not. You can declare a variable or value using `var` or `val` respectively, the name of the variable, and then a type. Here's an example:
 
 ```
 var butterfly: I32 = 1704;
 ```
 
-Great. If you wanted to create a value, it would be the same approach but with `val`:
+If you wanted to create a value, it would be the same approach but with `val`:
 
 ```
 val butterfly: I32 = 96;
@@ -46,7 +46,7 @@ Quick note on variables: mutate them all you want, but you can't touch the type.
 Also like most statically typed and compiled languages, Krabbascript uses curly brackets for its blocks. 
 However, we won't make you use parens for your conditions. Your welcome.
 
-Krabbascript has a solid arrangement of control structures for you. We've got if-elsif-else blocks, while loops, repeat loops, for loops and when blocks.
+Krabbascript has a solid arrangement of control structures for you. We have if-elsif-else blocks, while loops, repeat loops, for loops and when blocks.
 
 #### if-elsif-else blocks
 
@@ -61,8 +61,6 @@ if breakfast {
 ```
 
 #### while loops
-
-Once again, no parens needed.
 
 ```
 while railsIsUnpopular {
@@ -97,7 +95,7 @@ when language {
 
 #### for loops
 
-The for loops here are closer to foreach loops, and the design was heavily inspired by Lua.
+Krabbascript's for loops are closer to foreach loops, and the design was heavily inspired by Lua.
 
 ```
 for index, language in languages {
@@ -148,7 +146,7 @@ struct User {
 }
 ```
 
-All struct names must be capitalized; if you were to name a struct `user`, you would be met with an error.
+All struct names must be capitalized; if you were to name a struct something like `user`, you would be met with an error.
 
 To access a struct's property, use dot notation. For example:
 
@@ -175,9 +173,9 @@ func giveMeACity() -> Str {
 }
 ```
 
-If you wish to return void, you don't have to type out `-> void` -- that would be awful! You just don't add a return type and that symbolizes the function returning void.
+If you wish to return void, you don't have to type out `-> void` -- that would be awful! You can simply omit the return type and that symbolizes the function returning void.
 
-You can call a function like 99% of languages:
+You can call a function like in any other language:
 
 ```
 giveMeACity();
@@ -191,5 +189,33 @@ Comments are quite simple. They use a single hashtag: `#`. There are no multi-li
 # Finland gained independence from Russia in 1917.
 ```
 
+### Modules
 
-I omitted a lot of the esoteric features like attributes, but you can find information for those in the official documentation.
+Like tuples, module names must be capitalized. You can have multiple modules in a file. They are declared like this:
+
+```
+mod Shapes {
+	struct Rectangle {
+	x: I32;
+	y: I32;
+	w: I32;
+	h: I32;
+  	}
+
+	func rect_area(rect: Rectangle) -> I32 {
+		return rect.w * rect.h;
+  	}
+}
+```
+
+### Importing
+
+This is how you import a module:
+
+```
+import "Shapes";
+```
+
+## Conclusion
+
+The website is a work in progress, but it will host more details regarding Krabbascript.
