@@ -75,7 +75,7 @@ In these, you loop now and declare a condition later.
 ```
 repeat {
   rantAboutWhyRailsIsGreat();
-} until railsIsTrending
+} until railsIsTrending;
 ```
 
 #### when blocks
@@ -84,12 +84,8 @@ This is one of the more unique parts of Krabbascript. This is like a switch in n
 
 ```
 when language {
-  == "Elixir" {
-    celebrate();
-  }
-  == "Haskell" {
-    complain();
-  }
+  == "Elixir" do celebrate();
+  == "Haskell" do complain();
 }
 ```
 
@@ -107,7 +103,7 @@ for index, language in languages {
       complain();
     }
   }
-  std.print(index);
+  Std.print(index);
 }
 ```
 
@@ -141,8 +137,8 @@ You can define a struct like this:
 
 ```
 struct User {
-	name: Str;
-  birth: U64;
+	name: Str,
+	birth: U64
 }
 ```
 
@@ -191,7 +187,7 @@ Comments are quite simple. They use a single hashtag: `#`. There are no multi-li
 
 ### Modules
 
-Like tuples, module names must be capitalized. You can have multiple modules in a file. They are declared like this:
+Like structs, module names must be capitalized. You can have multiple modules in a file. They are declared like this:
 
 ```
 mod Shapes {
