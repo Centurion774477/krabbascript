@@ -154,8 +154,8 @@ Here's how you can make an instance of a struct:
 
 ```
 val my_user: User = User{
-      name  = “Joe Doe”;
-      birth = 1704;
+      name  = “Joe Doe”,
+      birth = 1704
 };
 ```
 
