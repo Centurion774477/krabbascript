@@ -138,7 +138,7 @@ func (p *Parser) expectToks(s *TokenStream, types ...lexer.TokenType) error {
 		expected[i] = fmt.Sprintf("'%s'", tt)
 	}
 
-	return fmt.Errorf("%s:%d:%d: expected %s, got %s",
+	return fmt.Errorf("%s:%d:%d: expected %s, got '%s'",
 		p.file, t.Line, t.Column, strings.Join(expected, ", "), t.Type)
 }
 
@@ -185,9 +185,10 @@ func (p *Parser) parseListInit(s *TokenStream) (*Node, error) {
 			)
 		}
 
-		if t.Type == lexer.TokenOpenBrack {
+		switch t.Type {
+		case lexer.TokenOpenBrack:
 			depth++
-		} else if t.Type == lexer.TokenClosedBrack {
+		case lexer.TokenClosedBrack:
 			depth--
 		}
 
@@ -1019,6 +1020,126 @@ func (p *Parser) parseElseToks(s *TokenStream) (*Node, error) {
 	return node, nil
 }
 
+func (p *Parser) parseImportModulePathToks(s *TokenStream) (*Node, error) {
+	// It's guaranteed that the stream we got is not EOF, but check just in case
+	start := p.currentToks(s)
+
+	if start.Type == lexer.TokenEof {
+		return nil, fmt.Errorf("%s:%d:%d: expected a module path (example import %s;), got %s", p.file, start.Line, start.Column, color.GreenString("Std.SomeMod"), start)
+	}
+
+	path := Node{
+		line:   start.Line,
+		column: start.Column,
+		Type:   NodeModulePath,
+
+		ExtraInfo: &NodeInfoBlock{}, // This will hold the module path
+	}
+
+	for {
+		c := p.currentToks(s)
+
+		if c.Type == lexer.TokenEof {
+			// Reached end of stream
+			break
+		}
+
+		err := p.expectToks(s, lexer.TokenLiteral)
+		if err != nil {
+			return nil, fmt.Errorf("%s:%d:%d: expected module name, got '%s'", p.file, c.Line, c.Column, c)
+		}
+
+		next := p.peekToks(s)
+
+		if next.Type != lexer.TokenDot && next.Type != lexer.TokenEof {
+			return nil, fmt.Errorf("%s:%d:%d: expected '.' or ';' after module, got %s", p.file, next.Line, next.Column, next)
+		}
+
+		// Add the literal to the NodeBlock
+		lit := p.consumeToks(s)
+		p.appendToBlock(&path, &Node{
+			Lexeme: lit.Value,
+			Type:   NodeModuleImport,
+		})
+
+		c = p.currentToks(s)
+
+		// Skip the dot if exists
+		if c.Type == lexer.TokenDot {
+			p.consumeToks(s)
+
+			// If there is a dot after EOF, throw a mean error
+			c = p.currentToks(s)
+			if c.Type == lexer.TokenEof {
+				return nil, fmt.Errorf("%s:%d:%d: trailing comma. expected module name after '.', got '%s'", p.file, c.Line, c.Column, c)
+			}
+		}
+	}
+
+	return &path, nil
+}
+
+func (p *Parser) parseImportToks(s *TokenStream) (*Node, error) {
+	start := p.consumeToks(s)
+
+	// Collect everything into a buffer which will hold the node path.
+
+	// import Std.EpicMod;
+	//        ^^^^^^^^^^^
+
+	current := p.currentToks(s)
+	if current.Type == lexer.TokenEof || current.Type == lexer.TokenSemi {
+		return nil, fmt.Errorf("%s:%d:%d: expected a module path (example import %s;), got %s", p.file, current.Line, current.Column, color.GreenString("Std.SomeMod"), current)
+	}
+
+	var toks []lexer.Token
+	for {
+		t := p.currentToks(s)
+		if t.Type == lexer.TokenEof || t.Type == lexer.TokenSemi {
+			break
+		}
+
+		toks = append(toks, t)
+		p.consumeToks(s)
+	}
+
+	err := p.skipToks(s, lexer.TokenSemi)
+	if err != nil {
+		return nil, err
+	}
+
+	node := Node{
+		line:   start.Line,
+		column: start.Column,
+
+		Type: NodeImportStatement,
+	}
+
+	// Add an EOF by getting the last element and using it as the line and column for the EOF token
+	last := toks[len(toks)-1]
+	toks = append(toks, lexer.Token{
+		Line:   last.Line,
+		Column: last.Column,
+		Type:   lexer.TokenEof,
+	})
+
+	// Create a new stream for ImportModulePath to work with
+	stream := TokenStream{
+		toks: toks,
+		pos:  0, // This is just boilerplate
+	}
+
+	// Parse the module path
+	path, err := p.parseImportModulePathToks(&stream)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set the path to the right side
+	node.Right = path
+	return &node, nil
+}
+
 func (p *Parser) appendToBlock(block *Node, node *Node) {
 	switch v := block.ExtraInfo.(type) {
 	case *NodeInfoBlock:
@@ -1119,6 +1240,16 @@ loop:
 			p.consumeToks(s) // Skip the newline
 		case lexer.TokenStruct:
 			n, err := p.parseStructToks(s)
+			if err != nil {
+				fmt.Printf("kscript: %s: %v\n", color.RedString("error"), err)
+
+				p.numErrors++
+				p.sync(s)
+			}
+
+			p.appendToBlock(ast, n)
+		case lexer.TokenImport:
+			n, err := p.parseImportToks(s)
 			if err != nil {
 				fmt.Printf("kscript: %s: %v\n", color.RedString("error"), err)
 

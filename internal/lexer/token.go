@@ -204,8 +204,8 @@ type Token struct {
 
 func (t Token) String() string {
 	if t.Value != "" {
-		return fmt.Sprintf("token %s with value %q at %d:%d", t.Type, t.Value, t.Line, t.Column)
+		return fmt.Sprintf("%s %q", t.Type, t.Value)
 	} else {
-		return fmt.Sprintf("token %s at %d:%d", t.Type, t.Line, t.Column)
+		return fmt.Sprintf("%s", t.Type)
 	}
 }
