@@ -202,35 +202,24 @@ func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int, allowLi
 		(p.currentToks(s).Type == lexer.TokenLiteral &&
 			p.peekToks(s).Type == lexer.TokenOpenBrack) {
 
-		typeToken := p.currentToks(s).Type
-
-		// A type/name followed by '{' is an initializer.
-		isInitializer := p.peekToks(s).Type == lexer.TokenOpenBrack &&
-			(p.isCurrentBuiltInTypeToks(s) ||
-				typeToken == lexer.TokenLiteral)
-
-		if isInitializer && !allowListInits {
-			c := p.currentToks(s)
-			return nil, &ParserError{
-				What: fmt.Errorf("%s:%d:%d: initializer is not allowed here", p.file, c.Line, c.Column),
-				Fix:  "wrap the initializer in parentheses",
-			}
-		}
-
 		nType, err := p.convertType(s)
 		if err != nil {
-			return nil, &ParserError{
-				What: err,
-			}
+			return nil, &ParserError{What: err}
 		}
 
-		if isInitializer && p.currentToks(s).Type == lexer.TokenOpenBrack {
+		if c := p.currentToks(s); c.Type == lexer.TokenOpenBrack {
+			if !allowListInits {
+				return nil, &ParserError{
+					What: fmt.Errorf("%s:%d:%d: initializer is not allowed here", p.file, c.Line, c.Column),
+					Fix:  "wrap the initializer in parentheses",
+				}
+			}
+
 			var lerr *ParserError
 			left, lerr = p.parseListInit(s)
 			if lerr != nil {
 				return nil, lerr
 			}
-
 			left.Left = nType
 		} else {
 			left = nType
