@@ -12,10 +12,14 @@ const (
 	NodeVariableDef NodeType = iota // variable def
 	NodeVariableDec                 // variable dec
 
-	NodeValueDef       // value def
-	NodeIfStatement    // if statement
-	NodeElsifStatement // elsif statement
-	NodeElseStatement  // else statement
+	NodeValueDef        // value def
+	NodeIfStatement     // if statement
+	NodeElsifStatement  // elsif statement
+	NodeElseStatement   // else statement
+	NodeImportStatement // import statement
+
+	NodeModuleImport // module import
+	NodeModulePath   // module path
 
 	NodeFieldDec  // field dec
 	NodeStructDec // struct dec
