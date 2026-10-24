@@ -40,6 +40,13 @@ func TestEofToken(t *testing.T) {
 	})
 }
 
+func TestEolToken(t *testing.T) {
+	testTokenSequence(t, "\n", []expectedToken{
+		{TokenEol, ""},
+		{TokenEof, ""},
+	})
+}
+
 func TestKeywords(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -62,6 +69,7 @@ func TestKeywords(t *testing.T) {
 		{"when", "when", TokenWhen},
 		{"struct", "struct", TokenStruct},
 		{"import", "import", TokenImport},
+		{"do", "do", TokenDo},
 	}
 
 	for _, tt := range tests {
