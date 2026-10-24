@@ -40,14 +40,16 @@ func _() {
 	_ = x[NodeU32Type-29]
 	_ = x[NodeU16Type-30]
 	_ = x[NodeU8Type-31]
-	_ = x[NodeStrType-32]
-	_ = x[NodeBoolType-33]
-	_ = x[NodeAnyType-34]
+	_ = x[NodeF64Type-32]
+	_ = x[NodeF32Type-33]
+	_ = x[NodeStrType-34]
+	_ = x[NodeBoolType-35]
+	_ = x[NodeAnyType-36]
 }
 
-const _NodeType_name = "variable defvariable decvalue defif statementelsif statementelse statementimport statementwhen statementmodule importmodule pathwhen armwhen else armscopefield decstruct declist initrootbin opnum litfloat litlitstr litarrayindexI64 typeI32 typeI16 typeI8 typeU64 typeU32 typeU16 typeU8 typeStr typeBool typeAny type"
+const _NodeType_name = "variable defvariable decvalue defif statementelsif statementelse statementimport statementwhen statementmodule importmodule pathwhen armwhen else armscopefield decstruct declist initrootbin opnum litfloat litlitstr litarrayindexI64 typeI32 typeI16 typeI8 typeU64 typeU32 typeU16 typeU8 typeF64 typeF32 typeStr typeBool typeAny type"
 
-var _NodeType_index = [...]uint16{0, 12, 24, 33, 45, 60, 74, 90, 104, 117, 128, 136, 149, 154, 163, 173, 182, 186, 192, 199, 208, 211, 218, 223, 228, 236, 244, 252, 259, 267, 275, 283, 290, 298, 307, 315}
+var _NodeType_index = [...]uint16{0, 12, 24, 33, 45, 60, 74, 90, 104, 117, 128, 136, 149, 154, 163, 173, 182, 186, 192, 199, 208, 211, 218, 223, 228, 236, 244, 252, 259, 267, 275, 283, 290, 298, 306, 314, 323, 331}
 
 func (i NodeType) String() string {
 	idx := int(i) - 0

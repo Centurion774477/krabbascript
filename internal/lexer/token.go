@@ -39,6 +39,9 @@ const (
 	TokenU16
 	TokenU8
 
+	TokenF64
+	TokenF32
+
 	TokenAny
 	TokenArr
 	TokenDo
@@ -138,6 +141,8 @@ func (tt TokenType) String() string {
 		TokenU32:  "U32",
 		TokenU16:  "U16",
 		TokenU8:   "U8",
+		TokenF64:  "F64",
+		TokenF32:  "F32",
 		TokenAny:  "Any",
 		TokenArr:  "Arr",
 
