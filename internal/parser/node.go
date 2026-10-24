@@ -51,6 +51,9 @@ const (
 	NodeU16Type // U16 type
 	NodeU8Type  // U8 type
 
+	NodeF64Type // F64 type
+	NodeF32Type // F32 type
+
 	NodeStrType  // Str type
 	NodeBoolType // Bool type
 	NodeAnyType  // Any type

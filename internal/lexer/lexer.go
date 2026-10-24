@@ -98,6 +98,8 @@ func newKeywords() map[string]TokenType {
 		"U32":  TokenU32,
 		"U16":  TokenU16,
 		"U8":   TokenU8,
+		"F64":  TokenF64,
+		"F32":  TokenF32,
 		"Any":  TokenAny,
 		"Str":  TokenStr,
 		"Bool": TokenBool,

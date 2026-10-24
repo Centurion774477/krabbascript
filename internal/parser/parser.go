@@ -358,6 +358,12 @@ func (p *Parser) convertType(s *TokenStream) (*Node, error) {
 	case lexer.TokenU8:
 		n.Type = NodeU8Type
 		p.consumeToks(s)
+	case lexer.TokenF64:
+		n.Type = NodeF64Type
+		p.consumeToks(s)
+	case lexer.TokenF32:
+		n.Type = NodeF32Type
+		p.consumeToks(s)
 
 	case lexer.TokenStr:
 		n.Type = NodeStrType
