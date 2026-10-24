@@ -46,13 +46,15 @@ var buildCmd = &cobra.Command{
 		}
 
 		p := parser.NewParser(toks, dir)
-		ast := p.Parse()
+		ast, errors := p.Parse()
 
-		if errs := p.GetErrors(); errs != 0 {
-			fmt.Print("kscript: ")
+		for _, err := range errors {
+			fmt.Printf("kscript: %s: %v\n", color.RedString("error"), err)
+		}
 
+		if len(errors) != 0 {
 			color.Set(color.FgRed)
-			fmt.Printf("compilation failed with %d error(s)\n", errs)
+			fmt.Printf("compilation failed with %d error(s)\n", len(errors))
 			color.Unset()
 
 			os.Exit(1)

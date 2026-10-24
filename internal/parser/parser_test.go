@@ -10,9 +10,9 @@ func TestListInitializer(t *testing.T) {
 	l := lexer.NewLexerFromStr(source, "test")
 	p := NewParser(l.Scan(), "test")
 
-	ast := p.Parse()
-	if p.GetErrors() != 0 {
-		t.Fatalf("parser reported %d errors", p.GetErrors())
+	ast, err := p.Parse()
+	if len(err) != 0 {
+		t.Fatalf("parser reported %d errors", len(err))
 	}
 
 	block, ok := ast.ExtraInfo.(*NodeInfoBlock)

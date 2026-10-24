@@ -16,10 +16,10 @@ type Parser struct {
 	line, column int
 	file         string
 
-	toks      TokenStream
-	numErrors int
+	toks TokenStream
 
 	bindings map[lexer.TokenType]Binding
+	errors   []ParserError
 }
 
 func newBindings() map[lexer.TokenType]Binding {
@@ -67,12 +67,12 @@ func NewParser(toks []lexer.Token, file string) Parser {
 			pos:  0,
 			toks: toks,
 		},
-		numErrors: 0,
-		bindings:  newBindings(),
+		bindings: newBindings(),
+		errors:   make([]ParserError, 0, 0),
 	}
 }
 
-func (p *Parser) parseListInit(s *TokenStream) (*Node, error) {
+func (p *Parser) parseListInit(s *TokenStream) (*Node, *ParserError) {
 	start := p.currentToks(s)
 
 	var buffer []lexer.Token
@@ -82,10 +82,12 @@ func (p *Parser) parseListInit(s *TokenStream) (*Node, error) {
 		t := p.currentToks(s)
 
 		if t.Type == lexer.TokenEof {
-			return nil, fmt.Errorf(
-				"%s:%d:%d: unclosed bracket",
-				p.file, start.Line, start.Column,
-			)
+			return nil, &ParserError{
+				What: fmt.Errorf(
+					"%s:%d:%d: unclosed bracket",
+					p.file, start.Line, start.Column,
+				),
+			}
 		}
 
 		switch t.Type {
@@ -138,7 +140,7 @@ func (p *Parser) parseListInit(s *TokenStream) (*Node, error) {
 	return left, nil
 }
 
-func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int, allowListInits bool) (*Node, error) {
+func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int, allowListInits bool) (*Node, *ParserError) {
 
 	err := p.expectLitToksExtra(
 		s,
@@ -164,7 +166,9 @@ func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int, allowLi
 	var left *Node
 	if err != nil {
 		c := p.currentToks(s)
-		return nil, fmt.Errorf("%s:%d:%d: expected an expression, got '%s'", p.file, c.Line, c.Column, c)
+		return nil, &ParserError{
+			What: fmt.Errorf("%s:%d:%d: expected an expression, got '%s'", p.file, c.Line, c.Column, c),
+		}
 	}
 
 	if p.currentToks(s).Type == lexer.TokenOpenParen {
@@ -184,7 +188,10 @@ func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int, allowLi
 	} else if p.currentToks(s).Type == lexer.TokenOpenBrack {
 		if !allowListInits {
 			c := p.currentToks(s)
-			return nil, fmt.Errorf("%s:%d:%d: making a list initializer here is not allowed\n\t%s: wrap the list init in parentheses", p.file, c.Line, c.Column, color.BlueString("fix"))
+			return nil, &ParserError{
+				What: fmt.Errorf("%s:%d:%d: making a list initializer here is not allowed", p.file, c.Line, c.Column),
+				Fix:  "wrap the list init in parentheses",
+			}
 		}
 
 		left, err = p.parseListInit(s)
@@ -204,21 +211,24 @@ func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int, allowLi
 
 		if isInitializer && !allowListInits {
 			c := p.currentToks(s)
-			return nil, fmt.Errorf(
-				"%s:%d:%d: initializer is not allowed here\n\t%s: wrap the initializer in parentheses",
-				p.file, c.Line, c.Column, color.BlueString("fix"),
-			)
+			return nil, &ParserError{
+				What: fmt.Errorf("%s:%d:%d: initializer is not allowed here", p.file, c.Line, c.Column),
+				Fix:  "wrap the initializer in parentheses",
+			}
 		}
 
 		nType, err := p.convertType(s)
 		if err != nil {
-			return nil, err
+			return nil, &ParserError{
+				What: err,
+			}
 		}
 
 		if isInitializer && p.currentToks(s).Type == lexer.TokenOpenBrack {
-			left, err = p.parseListInit(s)
+			var lerr *ParserError
+			left, lerr = p.parseListInit(s)
 			if err != nil {
-				return nil, err
+				return nil, lerr
 			}
 
 			left.Left = nType
@@ -234,10 +244,12 @@ func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int, allowLi
 		}) {
 
 		c := p.currentToks(s)
-		return nil, fmt.Errorf(
-			"%s:%d:%d: making a list initializer here is not allowed\n\t%s: wrap the list init in parentheses",
-			p.file, c.Line, c.Column, color.BlueString("fix"),
-		)
+		return nil, &ParserError{
+			What: fmt.Errorf(
+				"%s:%d:%d: making a list initializer here is not allowed\n\t%s: wrap the list init in parentheses",
+				p.file, c.Line, c.Column, color.BlueString("fix"),
+			),
+		}
 
 	} else {
 		t := p.consumeToks(s)
@@ -258,10 +270,12 @@ func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int, allowLi
 			nodeType = NodeLit
 
 		default:
-			return nil, fmt.Errorf(
-				"%s:%d:%d: unexpected literal %q",
-				p.file, t.Line, t.Column, t.Value,
-			)
+			return nil, &ParserError{
+				What: fmt.Errorf(
+					"%s:%d:%d: unexpected literal %q",
+					p.file, t.Line, t.Column, t.Value,
+				),
+			}
 		}
 
 		left = &Node{
@@ -297,7 +311,7 @@ func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int, allowLi
 		}
 
 		var right *Node
-		var err error
+		var err *ParserError
 
 		if bp.BindingSide == RightSide {
 			right, err = p.parseExpressionWithMinBpToks(s, int(bp.BindingPrecedence-1), allowListInits)
@@ -388,17 +402,17 @@ func (p *Parser) convertType(s *TokenStream) (*Node, error) {
 
 		err := p.skipToks(s, lexer.TokenLessThan)
 		if err != nil {
-			return nil, err
+			return nil, err.What
 		}
 
-		elementType, err := p.convertType(s)
+		elementType, cerr := p.convertType(s)
 		if err != nil {
-			return nil, err
+			return nil, cerr
 		}
 
 		err = p.skipToks(s, lexer.TokenGreaterThan)
 		if err != nil {
-			return nil, err
+			return nil, err.What
 		}
 
 		n.Left = elementType
@@ -409,14 +423,16 @@ func (p *Parser) convertType(s *TokenStream) (*Node, error) {
 	return n, nil
 }
 
-func (p *Parser) parseVarToks(s *TokenStream) (*Node, error) {
+func (p *Parser) parseVarToks(s *TokenStream) (*Node, *ParserError) {
 	var node *Node
 
 	start := p.consumeToks(s) // Will use this for the line, col fields
 	err := p.expectToks(s, lexer.TokenLiteral)
 	if err != nil {
 		c := p.currentToks(s)
-		return nil, fmt.Errorf("%s:%d:%d: expected a name for variable (example var %s), got '%s'", p.file, c.Line, c.Column, color.GreenString("butterfly"), c)
+		return nil, &ParserError{
+			What: fmt.Errorf("%s:%d:%d: expected a name for variable (example var %s), got '%s'", p.file, c.Line, c.Column, color.GreenString("butterfly"), c),
+		}
 	}
 
 	name := p.consumeToks(s) // Save this for later
@@ -428,20 +444,26 @@ func (p *Parser) parseVarToks(s *TokenStream) (*Node, error) {
 	err = p.expectToks(s, lexer.TokenEq, lexer.TokenColon)
 	if err != nil {
 		c := p.currentToks(s)
-		return nil, fmt.Errorf("%s:%d:%d: expected an assignment or ':' followed by a type, got '%s'", p.file, c.Line, c.Column, c)
+		return nil, &ParserError{
+			What: fmt.Errorf("%s:%d:%d: expected an assignment or ':' followed by a type, got '%s'", p.file, c.Line, c.Column, c),
+		}
 	}
 
 	colEq := p.consumeToks(s)
 	if colEq.Type == lexer.TokenColon {
 		nType, err := p.convertType(s)
 		if err != nil {
-			return nil, err
+			return nil, &ParserError{
+				What: err,
+			}
 		}
 
-		err = p.expectToks(s, lexer.TokenEq, lexer.TokenSemi)
-		if err != nil {
+		eerr := p.expectToks(s, lexer.TokenEq, lexer.TokenSemi)
+		if eerr != nil {
 			c := p.currentToks(s)
-			return nil, fmt.Errorf("%s:%d:%d: expected an assignment or ';', got '%s'", p.file, c.Line, c.Column, c)
+			return nil, &ParserError{
+				What: fmt.Errorf("%s:%d:%d: expected an assignment or ';', got '%s'", p.file, c.Line, c.Column, c),
+			}
 		}
 
 		// Something like var krabba: i32;
@@ -505,14 +527,16 @@ exit:
 	return node, nil
 }
 
-func (p *Parser) parseValToks(s *TokenStream) (*Node, error) {
+func (p *Parser) parseValToks(s *TokenStream) (*Node, *ParserError) {
 	var node *Node
 
 	start := p.consumeToks(s) // Will use this for the line, col fields
 	err := p.expectToks(s, lexer.TokenLiteral)
 	if err != nil {
 		c := p.currentToks(s)
-		return nil, fmt.Errorf("%s:%d:%d: expected a name for value (example val %s), got '%s'", p.file, c.Line, c.Column, color.GreenString("butterfly"), c)
+		return nil, &ParserError{
+			What: fmt.Errorf("%s:%d:%d: expected a name for value (example val %s), got '%s'", p.file, c.Line, c.Column, color.GreenString("butterfly"), c),
+		}
 	}
 
 	name := p.consumeToks(s) // Save this for later
@@ -524,32 +548,35 @@ func (p *Parser) parseValToks(s *TokenStream) (*Node, error) {
 	err = p.expectToks(s, lexer.TokenEq, lexer.TokenColon)
 	if err != nil {
 		c := p.currentToks(s)
-		return nil, fmt.Errorf("%s:%d:%d: expected an assignment or ':' followed by a type, got '%s'", p.file, c.Line, c.Column, c)
+		return nil, &ParserError{
+			What: fmt.Errorf("%s:%d:%d: expected an assignment or ':' followed by a type, got '%s'", p.file, c.Line, c.Column, c),
+		}
 	}
 
 	colEq := p.consumeToks(s)
 	if colEq.Type == lexer.TokenColon {
 		nType, err := p.convertType(s)
 		if err != nil {
-			return nil, err
+			return nil, &ParserError{
+				What: err,
+			}
 		}
 
-		err = p.expectToks(s, lexer.TokenEq)
-		if err != nil {
-			c := p.currentToks(s)
-			return nil, fmt.Errorf("%s:%d:%d: expected an assignment, got '%s'", p.file, c.Line, c.Column, c)
+		eerr := p.expectToks(s, lexer.TokenEq)
+		if eerr != nil {
+			return nil, eerr
 		}
 
 		p.consumeToks(s) // Skip the =
 
-		expr, err := p.parseExpressionWithMinBpToks(s, 0, true)
+		expr, eerr := p.parseExpressionWithMinBpToks(s, 0, true)
 		if err != nil {
-			return nil, err
+			return nil, eerr
 		}
 
-		err = p.skipToks(s, lexer.TokenSemi)
+		eerr = p.skipToks(s, lexer.TokenSemi)
 		if err != nil {
-			return nil, err
+			return nil, eerr
 		}
 
 		node = &Node{
@@ -586,7 +613,7 @@ exit:
 	return node, nil
 }
 
-func (p *Parser) parseScopeToks(s *TokenStream, what string) (*Node, error) {
+func (p *Parser) parseScopeToks(s *TokenStream) (*Node, *ParserError) {
 	err := p.skipToks(s, lexer.TokenOpenBrack)
 	if err != nil {
 		return nil, err
@@ -630,17 +657,14 @@ func (p *Parser) parseScopeToks(s *TokenStream, what string) (*Node, error) {
 		Type:   lexer.TokenEof,
 	})
 
-	n := p.ParseToks(&TokenStream{toks: toks, pos: 0})
-	if n == nil && p.GetErrors() > 0 {
-		return nil, fmt.Errorf("failed to parse %s body", what)
-	}
-
+	// The errors will get pushed to errors field
+	n, _ := p.ParseToks(&TokenStream{toks: toks, pos: 0})
 	n.Type = NodeScope
 
 	return n, nil
 }
 
-func (p *Parser) parseStructFieldToks(s *TokenStream) (*Node, error) {
+func (p *Parser) parseStructFieldToks(s *TokenStream) (*Node, *ParserError) {
 	err := p.expectToks(s, lexer.TokenLiteral)
 	if err != nil {
 		return nil, err
@@ -653,9 +677,11 @@ func (p *Parser) parseStructFieldToks(s *TokenStream) (*Node, error) {
 		return nil, err
 	}
 
-	typ, err := p.convertType(s)
-	if err != nil {
-		return nil, err
+	typ, cerr := p.convertType(s)
+	if cerr != nil {
+		return nil, &ParserError{
+			What: cerr,
+		}
 	}
 
 	err = p.skipToks(s, lexer.TokenSemi)
@@ -676,7 +702,7 @@ func (p *Parser) parseStructFieldToks(s *TokenStream) (*Node, error) {
 	return &n, nil
 }
 
-func (p *Parser) parseStructFieldsToks(s *TokenStream) (*Node, error) {
+func (p *Parser) parseStructFieldsToks(s *TokenStream) (*Node, *ParserError) {
 	node := &Node{
 		ExtraInfo: &NodeInfoBlock{},
 		Type:      NodeStructDec,
@@ -696,7 +722,7 @@ func (p *Parser) parseStructFieldsToks(s *TokenStream) (*Node, error) {
 	}
 }
 
-func (p *Parser) parseStructScopeToks(s *TokenStream) (*Node, error) {
+func (p *Parser) parseStructScopeToks(s *TokenStream) (*Node, *ParserError) {
 	err := p.skipToks(s, lexer.TokenOpenBrack)
 	if err != nil {
 		return nil, err
@@ -739,7 +765,7 @@ func (p *Parser) parseStructScopeToks(s *TokenStream) (*Node, error) {
 	return p.parseStructFieldsToks(&stream)
 }
 
-func (p *Parser) parseStructToks(s *TokenStream) (*Node, error) {
+func (p *Parser) parseStructToks(s *TokenStream) (*Node, *ParserError) {
 	start := p.consumeToks(s) // Save this for line, col fields
 
 	err := p.expectToks(s, lexer.TokenLiteral)
@@ -794,7 +820,7 @@ While current != EOF
 Return trimmed
 */
 
-func (p *Parser) trimListInit(s *TokenStream) ([]TokenStream, error) {
+func (p *Parser) trimListInit(s *TokenStream) ([]TokenStream, *ParserError) {
 	var trimmed []TokenStream
 	var buffer []lexer.Token
 	depth := 0
@@ -816,7 +842,9 @@ func (p *Parser) trimListInit(s *TokenStream) ([]TokenStream, error) {
 
 			start := p.currentToks(s) // Save this for error handling
 			if start.Type == lexer.TokenClosedBrack {
-				return nil, fmt.Errorf("%s:%d:%d: expected an element, got {", p.file, start.Line, start.Column)
+				return nil, &ParserError{
+					What: fmt.Errorf("%s:%d:%d: expected an element, got {", p.file, start.Line, start.Column),
+				}
 			}
 			if len(buffer) > 0 {
 				buffer = append(buffer, lexer.Token{
@@ -841,7 +869,9 @@ func (p *Parser) trimListInit(s *TokenStream) ([]TokenStream, error) {
 		case lexer.TokenClosedBrack:
 			depth--
 			if depth < 0 {
-				return nil, fmt.Errorf("%s:%d:%d: unexpected closing bracket", p.file, t.Line, t.Column)
+				return nil, &ParserError{
+					What: fmt.Errorf("%s:%d:%d: unexpected closing bracket", p.file, t.Line, t.Column),
+				}
 			}
 		}
 
@@ -851,7 +881,9 @@ func (p *Parser) trimListInit(s *TokenStream) ([]TokenStream, error) {
 
 	if depth != 0 {
 		t := p.currentToks(s)
-		return nil, fmt.Errorf("%s:%d:%d: unclosed bracket", p.file, t.Line, t.Column)
+		return nil, &ParserError{
+			What: fmt.Errorf("%s:%d:%d: unclosed bracket", p.file, t.Line, t.Column),
+		}
 	}
 
 	if len(buffer) > 0 {
@@ -875,7 +907,7 @@ func (p *Parser) trimListInit(s *TokenStream) ([]TokenStream, error) {
 	return trimmed, nil
 }
 
-func (p *Parser) parseIfToks(s *TokenStream) (*Node, error) {
+func (p *Parser) parseIfToks(s *TokenStream) (*Node, *ParserError) {
 	start := p.consumeToks(s) // Will use this for the line, col fields
 
 	expr, err := p.parseExpressionWithMinBpToks(s, 0, false)
@@ -883,7 +915,7 @@ func (p *Parser) parseIfToks(s *TokenStream) (*Node, error) {
 		return nil, err
 	}
 
-	body, err := p.parseScopeToks(s, "if")
+	body, err := p.parseScopeToks(s)
 	if err != nil {
 		return nil, err
 	}
@@ -903,7 +935,7 @@ func (p *Parser) parseIfToks(s *TokenStream) (*Node, error) {
 	return node, nil
 }
 
-func (p *Parser) parseElsifToks(s *TokenStream) (*Node, error) {
+func (p *Parser) parseElsifToks(s *TokenStream) (*Node, *ParserError) {
 	start := p.consumeToks(s)
 
 	expr, err := p.parseExpressionWithMinBpToks(s, 0, false)
@@ -911,7 +943,7 @@ func (p *Parser) parseElsifToks(s *TokenStream) (*Node, error) {
 		return nil, err
 	}
 
-	body, err := p.parseScopeToks(s, "elsif")
+	body, err := p.parseScopeToks(s)
 	if err != nil {
 		return nil, err
 	}
@@ -931,10 +963,10 @@ func (p *Parser) parseElsifToks(s *TokenStream) (*Node, error) {
 	return node, nil
 }
 
-func (p *Parser) parseElseToks(s *TokenStream) (*Node, error) {
+func (p *Parser) parseElseToks(s *TokenStream) (*Node, *ParserError) {
 	start := p.consumeToks(s)
 
-	body, err := p.parseScopeToks(s, "else")
+	body, err := p.parseScopeToks(s)
 	if err != nil {
 		return nil, err
 	}
@@ -953,12 +985,14 @@ func (p *Parser) parseElseToks(s *TokenStream) (*Node, error) {
 	return node, nil
 }
 
-func (p *Parser) parseImportModulePathToks(s *TokenStream) (*Node, error) {
+func (p *Parser) parseImportModulePathToks(s *TokenStream) (*Node, *ParserError) {
 	// It's guaranteed that the stream we got is not EOF, but check just in case
 	start := p.currentToks(s)
 
 	if start.Type == lexer.TokenEof {
-		return nil, fmt.Errorf("%s:%d:%d: expected a module path (example import %s;), got %s", p.file, start.Line, start.Column, color.GreenString("Std.SomeMod"), start)
+		return nil, &ParserError{
+			What: fmt.Errorf("%s:%d:%d: expected a module path (example import %s;), got %s", p.file, start.Line, start.Column, color.GreenString("Std.SomeMod"), start),
+		}
 	}
 
 	path := Node{
@@ -979,13 +1013,17 @@ func (p *Parser) parseImportModulePathToks(s *TokenStream) (*Node, error) {
 
 		err := p.expectToks(s, lexer.TokenLiteral)
 		if err != nil {
-			return nil, fmt.Errorf("%s:%d:%d: expected module name, got '%s'", p.file, c.Line, c.Column, c)
+			return nil, &ParserError{
+				What: fmt.Errorf("%s:%d:%d: expected module name, got '%s'", p.file, c.Line, c.Column, c),
+			}
 		}
 
 		next := p.peekToks(s)
 
 		if next.Type != lexer.TokenDot && next.Type != lexer.TokenEof {
-			return nil, fmt.Errorf("%s:%d:%d: expected '.' or ';' after module, got %s", p.file, next.Line, next.Column, next)
+			return nil, &ParserError{
+				What: fmt.Errorf("%s:%d:%d: expected '.' or ';' after module, got %s", p.file, next.Line, next.Column, next),
+			}
 		}
 
 		// Add the literal to the NodeBlock
@@ -1004,7 +1042,9 @@ func (p *Parser) parseImportModulePathToks(s *TokenStream) (*Node, error) {
 			// If there is a dot after EOF, throw a mean error
 			c = p.currentToks(s)
 			if c.Type == lexer.TokenEof {
-				return nil, fmt.Errorf("%s:%d:%d: trailing comma. expected module name after '.', got '%s'", p.file, c.Line, c.Column, c)
+				return nil, &ParserError{
+					What: fmt.Errorf("%s:%d:%d: trailing comma. expected module name after '.', got '%s'", p.file, c.Line, c.Column, c),
+				}
 			}
 		}
 	}
@@ -1012,7 +1052,7 @@ func (p *Parser) parseImportModulePathToks(s *TokenStream) (*Node, error) {
 	return &path, nil
 }
 
-func (p *Parser) parseImportToks(s *TokenStream) (*Node, error) {
+func (p *Parser) parseImportToks(s *TokenStream) (*Node, *ParserError) {
 	start := p.consumeToks(s)
 
 	// Collect everything into a buffer which will hold the node path.
@@ -1022,7 +1062,9 @@ func (p *Parser) parseImportToks(s *TokenStream) (*Node, error) {
 
 	current := p.currentToks(s)
 	if current.Type == lexer.TokenEof || current.Type == lexer.TokenSemi {
-		return nil, fmt.Errorf("%s:%d:%d: expected a module path (example import %s;), got %s", p.file, current.Line, current.Column, color.GreenString("Std.SomeMod"), current)
+		return nil, &ParserError{
+			What: fmt.Errorf("%s:%d:%d: expected a module path (example import %s;), got %s", p.file, current.Line, current.Column, color.GreenString("Std.SomeMod"), current),
+		}
 	}
 
 	var toks []lexer.Token
@@ -1063,9 +1105,9 @@ func (p *Parser) parseImportToks(s *TokenStream) (*Node, error) {
 	}
 
 	// Parse the module path
-	path, err := p.parseImportModulePathToks(&stream)
-	if err != nil {
-		return nil, err
+	path, merror := p.parseImportModulePathToks(&stream)
+	if merror != nil {
+		return nil, merror
 	}
 
 	// Set the path to the right side
@@ -1073,15 +1115,21 @@ func (p *Parser) parseImportToks(s *TokenStream) (*Node, error) {
 	return &node, nil
 }
 
+// func (p *Parser) parseWhenToks(s *TokenStream) (*Node, error) {
+// 	start := p.consumeToks(s)
+
+// 	err := p.expectLitToks(s)
+// 	if err != nil {
+// 		return nil, fmt.Errorf(`%s:%d:%d: expected a literal, got %s
+// 	%s: replace %s with (when %s)	`, p.file, start.Line, start.Column, start, color.BlueString("fix"), start, color.GreenString("some_var"))
+// 	}
+// }
+
 func (p *Parser) appendToBlock(block *Node, node *Node) {
 	switch v := block.ExtraInfo.(type) {
 	case *NodeInfoBlock:
 		v.Elements = append(v.Elements, node)
 	}
-}
-
-func (p *Parser) GetErrors() int {
-	return p.numErrors
 }
 
 // Will advance the stream until a safe place to continue parsing is reached
@@ -1135,7 +1183,7 @@ func (p *Parser) sync(s *TokenStream) {
 	}
 }
 
-func (p *Parser) ParseToks(s *TokenStream) *Node {
+func (p *Parser) ParseToks(s *TokenStream) (*Node, []ParserError) {
 	ast := &Node{
 		Type:      NodeRoot,
 		ExtraInfo: &NodeInfoBlock{},
@@ -1152,9 +1200,7 @@ loop:
 		case lexer.TokenVar:
 			n, err := p.parseVarToks(s)
 			if err != nil {
-				fmt.Printf("kscript: %s: %v\n", color.RedString("error"), err)
-
-				p.numErrors++
+				p.errors = append(p.errors, *err)
 				p.sync(s)
 			} else {
 				p.appendToBlock(ast, n)
@@ -1162,9 +1208,7 @@ loop:
 		case lexer.TokenVal:
 			n, err := p.parseValToks(s)
 			if err != nil {
-				fmt.Printf("kscript: %s: %v\n", color.RedString("error"), err)
-
-				p.numErrors++
+				p.errors = append(p.errors, *err)
 				p.sync(s)
 			} else {
 				p.appendToBlock(ast, n)
@@ -1172,9 +1216,7 @@ loop:
 		case lexer.TokenIf:
 			n, err := p.parseIfToks(s)
 			if err != nil {
-				fmt.Printf("kscript: %s: %v\n", color.RedString("error"), err)
-
-				p.numErrors++
+				p.errors = append(p.errors, *err)
 				p.sync(s)
 			} else {
 				p.appendToBlock(ast, n)
@@ -1182,9 +1224,7 @@ loop:
 		case lexer.TokenElsif:
 			n, err := p.parseElsifToks(s)
 			if err != nil {
-				fmt.Printf("kscript: %s: %v\n", color.RedString("error"), err)
-
-				p.numErrors++
+				p.errors = append(p.errors, *err)
 				p.sync(s)
 			} else {
 				p.appendToBlock(ast, n)
@@ -1192,9 +1232,7 @@ loop:
 		case lexer.TokenElse:
 			n, err := p.parseElseToks(s)
 			if err != nil {
-				fmt.Printf("kscript: %s: %v\n", color.RedString("error"), err)
-
-				p.numErrors++
+				p.errors = append(p.errors, *err)
 				p.sync(s)
 			} else {
 				p.appendToBlock(ast, n)
@@ -1202,9 +1240,7 @@ loop:
 		case lexer.TokenStruct:
 			n, err := p.parseStructToks(s)
 			if err != nil {
-				fmt.Printf("kscript: %s: %v\n", color.RedString("error"), err)
-
-				p.numErrors++
+				p.errors = append(p.errors, *err)
 				p.sync(s)
 			} else {
 				p.appendToBlock(ast, n)
@@ -1212,9 +1248,7 @@ loop:
 		case lexer.TokenImport:
 			n, err := p.parseImportToks(s)
 			if err != nil {
-				fmt.Printf("kscript: %s: %v\n", color.RedString("error"), err)
-
-				p.numErrors++
+				p.errors = append(p.errors, *err)
 				p.sync(s)
 			} else {
 				p.appendToBlock(ast, n)
@@ -1224,16 +1258,17 @@ loop:
 		case lexer.TokenEol:
 			p.consumeToks(s)
 		default:
-			fmt.Printf("kscript: %s: %s:%d:%d: unexpected token %s\n", color.RedString("error"), p.file, t.Line, t.Column, t.Type)
-			p.numErrors++
+			p.errors = append(p.errors, ParserError{
+				What: fmt.Errorf("%s:%d:%d: unexpected token %s", p.file, t.Line, t.Column, t),
+			})
 
 			p.sync(s)
 		}
 	}
 
-	return ast
+	return ast, p.errors
 }
 
-func (p *Parser) Parse() *Node {
+func (p *Parser) Parse() (*Node, []ParserError) {
 	return p.ParseToks(&p.toks)
 }

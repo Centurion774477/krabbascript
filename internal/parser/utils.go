@@ -57,7 +57,7 @@ func (p *Parser) consumeToks(s *TokenStream) lexer.Token {
 	return t
 }
 
-func (p *Parser) expectToks(s *TokenStream, types ...lexer.TokenType) error {
+func (p *Parser) expectToks(s *TokenStream, types ...lexer.TokenType) *ParserError {
 	t := p.currentToks(s)
 
 	for _, tt := range types {
@@ -71,15 +71,17 @@ func (p *Parser) expectToks(s *TokenStream, types ...lexer.TokenType) error {
 		expected[i] = fmt.Sprintf("'%s'", tt)
 	}
 
-	return fmt.Errorf("%s:%d:%d: expected %s, got '%s'",
-		p.file, t.Line, t.Column, strings.Join(expected, ", "), t.Type)
+	return &ParserError{
+		What: fmt.Errorf("%s:%d:%d: expected %s, got '%s'",
+			p.file, t.Line, t.Column, strings.Join(expected, ", "), t.Type),
+	}
 }
 
-func (p *Parser) expectLitToks(s *TokenStream) error {
+func (p *Parser) expectLitToks(s *TokenStream) *ParserError {
 	return p.expectToks(s, lexer.TokenLiteral, lexer.TokenFloatLiteral, lexer.TokenStrLiteral, lexer.TokenNumLiteral)
 }
 
-func (p *Parser) expectLitToksExtra(s *TokenStream, types ...lexer.TokenType) error {
+func (p *Parser) expectLitToksExtra(s *TokenStream, types ...lexer.TokenType) *ParserError {
 	base := []lexer.TokenType{
 		lexer.TokenLiteral,
 		lexer.TokenFloatLiteral,
@@ -92,7 +94,7 @@ func (p *Parser) expectLitToksExtra(s *TokenStream, types ...lexer.TokenType) er
 	return p.expectToks(s, toks...)
 }
 
-func (p *Parser) skipToks(s *TokenStream, types ...lexer.TokenType) error {
+func (p *Parser) skipToks(s *TokenStream, types ...lexer.TokenType) *ParserError {
 	err := p.expectToks(s, types...)
 	if err != nil {
 		return err
