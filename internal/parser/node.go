@@ -21,6 +21,8 @@ const (
 	NodeModuleImport // module import
 	NodeModulePath   // module path
 
+	NodeScope // scope
+
 	NodeFieldDec  // field dec
 	NodeStructDec // struct dec
 	NodeListInit  // list init

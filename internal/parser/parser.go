@@ -224,7 +224,7 @@ func (p *Parser) parseListInit(s *TokenStream) (*Node, error) {
 	}
 
 	for _, stream := range trimmed {
-		node, err := p.parseExpressionWithMinBpToks(&stream, 0)
+		node, err := p.parseExpressionWithMinBpToks(&stream, 0, true)
 		if err != nil {
 			return nil, err
 		}
@@ -247,7 +247,27 @@ func (p *Parser) isCurrentBuiltInTypeToks(s *TokenStream) bool {
 	}
 }
 
-func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int) (*Node, error) {
+func (p *Parser) checkMisplacedListInit(s *TokenStream) bool {
+	depth := 0
+	for {
+		t := p.currentToks(s)
+		switch t.Type {
+		case lexer.TokenEof:
+			return false
+		case lexer.TokenOpenBrack:
+			depth++
+		case lexer.TokenClosedBrack:
+			depth--
+			if depth == 0 {
+				return p.peekToks(s).Type == lexer.TokenOpenBrack
+			}
+		}
+
+		p.consumeToks(s)
+	}
+}
+
+func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int, allowListInits bool) (*Node, error) {
 
 	err := p.expectLitToksExtra(
 		s,
@@ -272,12 +292,13 @@ func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int) (*Node,
 	)
 	var left *Node
 	if err != nil {
-		return nil, err
+		c := p.currentToks(s)
+		return nil, fmt.Errorf("%s:%d:%d: expected an expression, got '%s'", p.file, c.Line, c.Column, c)
 	}
 
 	if p.currentToks(s).Type == lexer.TokenOpenParen {
 		p.consumeToks(s)
-		l, err := p.parseExpressionWithMinBpToks(s, 0)
+		l, err := p.parseExpressionWithMinBpToks(s, 0, true)
 		if err != nil {
 			return nil, err
 		}
@@ -290,20 +311,27 @@ func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int) (*Node,
 		}
 
 	} else if p.currentToks(s).Type == lexer.TokenOpenBrack {
+		if !allowListInits {
+			c := p.currentToks(s)
+			return nil, fmt.Errorf("%s:%d:%d: making a list initializer here is not allowed\n\t%s: wrap it in parentheses", p.file, c.Line, c.Column, color.BlueString("fix"))
+		}
+
 		left, err = p.parseListInit(s)
 		if err != nil {
 			return nil, err
 		}
 	} else if p.isCurrentBuiltInTypeToks(s) ||
 		(p.currentToks(s).Type == lexer.TokenLiteral &&
-			p.peekToks(s).Type == lexer.TokenOpenBrack) {
+			p.peekToks(s).Type == lexer.TokenOpenBrack) && (allowListInits || p.isCurrentBuiltInTypeToks(s)) {
+
 		typeToken := p.currentToks(s).Type
 		nType, err := p.convertType(s)
 		if err != nil {
 			return nil, err
 		}
 
-		if p.currentToks(s).Type == lexer.TokenOpenBrack &&
+		if allowListInits &&
+			p.currentToks(s).Type == lexer.TokenOpenBrack &&
 			(typeToken == lexer.TokenArr || typeToken == lexer.TokenLiteral) {
 			left, err = p.parseListInit(s)
 			if err != nil {
@@ -313,6 +341,21 @@ func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int) (*Node,
 		} else {
 			left = nType
 		}
+
+	} else if !allowListInits &&
+		p.currentToks(s).Type == lexer.TokenLiteral &&
+		p.peekToks(s).Type == lexer.TokenOpenBrack &&
+		p.checkMisplacedListInit(&TokenStream{
+			toks: s.toks,
+			pos:  s.pos,
+		}) {
+
+		c := p.currentToks(s)
+		return nil, fmt.Errorf(
+			"%s:%d:%d: making a list initializer here is not allowed\n\t%s: wrap it in parentheses",
+			p.file, c.Line, c.Column, color.BlueString("fix"),
+		)
+
 	} else {
 		t := p.consumeToks(s)
 
@@ -374,13 +417,12 @@ func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int) (*Node,
 		var err error
 
 		if bp.BindingSide == RightSide {
-			right, err = p.parseExpressionWithMinBpToks(s, int(bp.BindingPrecedence-1))
+			right, err = p.parseExpressionWithMinBpToks(s, int(bp.BindingPrecedence-1), allowListInits)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-
-			right, err = p.parseExpressionWithMinBpToks(s, int(bp.BindingPrecedence))
+			right, err = p.parseExpressionWithMinBpToks(s, int(bp.BindingPrecedence), allowListInits)
 			if err != nil {
 				return nil, err
 			}
@@ -490,7 +532,8 @@ func (p *Parser) parseVarToks(s *TokenStream) (*Node, error) {
 	start := p.consumeToks(s) // Will use this for the line, col fields
 	err := p.expectToks(s, lexer.TokenLiteral)
 	if err != nil {
-		return nil, err
+		c := p.currentToks(s)
+		return nil, fmt.Errorf("%s:%d:%d: expected a name for variable (example var %s), got '%s'", p.file, c.Line, c.Column, color.GreenString("butterfly"), c)
 	}
 
 	name := p.consumeToks(s) // Save this for later
@@ -501,7 +544,8 @@ func (p *Parser) parseVarToks(s *TokenStream) (*Node, error) {
 	// var krabba: i32 = 12;
 	err = p.expectToks(s, lexer.TokenEq, lexer.TokenColon)
 	if err != nil {
-		return nil, err
+		c := p.currentToks(s)
+		return nil, fmt.Errorf("%s:%d:%d: expected an assignment or ':' followed by a type, got '%s'", p.file, c.Line, c.Column, c)
 	}
 
 	colEq := p.consumeToks(s)
@@ -513,7 +557,8 @@ func (p *Parser) parseVarToks(s *TokenStream) (*Node, error) {
 
 		err = p.expectToks(s, lexer.TokenEq, lexer.TokenSemi)
 		if err != nil {
-			return nil, err
+			c := p.currentToks(s)
+			return nil, fmt.Errorf("%s:%d:%d: expected an assignment or ';', got '%s'", p.file, c.Line, c.Column, c)
 		}
 
 		// Something like var krabba: i32;
@@ -532,7 +577,7 @@ func (p *Parser) parseVarToks(s *TokenStream) (*Node, error) {
 		} else if p.currentToks(s).Type == lexer.TokenEq {
 			p.consumeToks(s) // Skip the =
 
-			expr, err := p.parseExpressionWithMinBpToks(s, 0)
+			expr, err := p.parseExpressionWithMinBpToks(s, 0, true)
 			if err != nil {
 				return nil, err
 			}
@@ -553,7 +598,7 @@ func (p *Parser) parseVarToks(s *TokenStream) (*Node, error) {
 			goto exit
 		}
 	} else { // Equals
-		expr, err := p.parseExpressionWithMinBpToks(s, 0)
+		expr, err := p.parseExpressionWithMinBpToks(s, 0, true)
 		if err != nil {
 			return nil, err
 		}
@@ -583,7 +628,8 @@ func (p *Parser) parseValToks(s *TokenStream) (*Node, error) {
 	start := p.consumeToks(s) // Will use this for the line, col fields
 	err := p.expectToks(s, lexer.TokenLiteral)
 	if err != nil {
-		return nil, err
+		c := p.currentToks(s)
+		return nil, fmt.Errorf("%s:%d:%d: expected a name for value (example val %s), got '%s'", p.file, c.Line, c.Column, color.GreenString("butterfly"), c)
 	}
 
 	name := p.consumeToks(s) // Save this for later
@@ -594,7 +640,8 @@ func (p *Parser) parseValToks(s *TokenStream) (*Node, error) {
 	// val krabba: i32 = 12;
 	err = p.expectToks(s, lexer.TokenEq, lexer.TokenColon)
 	if err != nil {
-		return nil, err
+		c := p.currentToks(s)
+		return nil, fmt.Errorf("%s:%d:%d: expected an assignment or ':' followed by a type, got '%s'", p.file, c.Line, c.Column, c)
 	}
 
 	colEq := p.consumeToks(s)
@@ -606,12 +653,13 @@ func (p *Parser) parseValToks(s *TokenStream) (*Node, error) {
 
 		err = p.expectToks(s, lexer.TokenEq)
 		if err != nil {
-			return nil, err
+			c := p.currentToks(s)
+			return nil, fmt.Errorf("%s:%d:%d: expected an assignment, got '%s'", p.file, c.Line, c.Column, c)
 		}
 
 		p.consumeToks(s) // Skip the =
 
-		expr, err := p.parseExpressionWithMinBpToks(s, 0)
+		expr, err := p.parseExpressionWithMinBpToks(s, 0, true)
 		if err != nil {
 			return nil, err
 		}
@@ -631,7 +679,7 @@ func (p *Parser) parseValToks(s *TokenStream) (*Node, error) {
 		}
 		goto exit
 	} else { // Equals
-		expr, err := p.parseExpressionWithMinBpToks(s, 0)
+		expr, err := p.parseExpressionWithMinBpToks(s, 0, true)
 		if err != nil {
 			return nil, err
 		}
@@ -703,6 +751,8 @@ func (p *Parser) parseScopeToks(s *TokenStream, what string) (*Node, error) {
 	if n == nil && p.GetErrors() > 0 {
 		return nil, fmt.Errorf("failed to parse %s body", what)
 	}
+
+	n.Type = NodeScope
 
 	return n, nil
 }
@@ -945,7 +995,7 @@ func (p *Parser) trimListInit(s *TokenStream) ([]TokenStream, error) {
 func (p *Parser) parseIfToks(s *TokenStream) (*Node, error) {
 	start := p.consumeToks(s) // Will use this for the line, col fields
 
-	expr, err := p.parseExpressionWithMinBpToks(s, 0)
+	expr, err := p.parseExpressionWithMinBpToks(s, 0, false)
 	if err != nil {
 		return nil, err
 	}
@@ -973,7 +1023,7 @@ func (p *Parser) parseIfToks(s *TokenStream) (*Node, error) {
 func (p *Parser) parseElsifToks(s *TokenStream) (*Node, error) {
 	start := p.consumeToks(s)
 
-	expr, err := p.parseExpressionWithMinBpToks(s, 0)
+	expr, err := p.parseExpressionWithMinBpToks(s, 0, false)
 	if err != nil {
 		return nil, err
 	}
