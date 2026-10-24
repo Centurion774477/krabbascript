@@ -1193,9 +1193,9 @@ loop:
 
 				p.numErrors++
 				p.sync(s)
+			} else {
+				p.appendToBlock(ast, n)
 			}
-
-			p.appendToBlock(ast, n)
 		case lexer.TokenVal:
 			n, err := p.parseValToks(s)
 			if err != nil {
@@ -1203,9 +1203,9 @@ loop:
 
 				p.numErrors++
 				p.sync(s)
+			} else {
+				p.appendToBlock(ast, n)
 			}
-
-			p.appendToBlock(ast, n)
 		case lexer.TokenIf:
 			n, err := p.parseIfToks(s)
 			if err != nil {
@@ -1213,9 +1213,9 @@ loop:
 
 				p.numErrors++
 				p.sync(s)
+			} else {
+				p.appendToBlock(ast, n)
 			}
-
-			p.appendToBlock(ast, n)
 		case lexer.TokenElsif:
 			n, err := p.parseElsifToks(s)
 			if err != nil {
@@ -1223,9 +1223,9 @@ loop:
 
 				p.numErrors++
 				p.sync(s)
+			} else {
+				p.appendToBlock(ast, n)
 			}
-
-			p.appendToBlock(ast, n)
 		case lexer.TokenElse:
 			n, err := p.parseElseToks(s)
 			if err != nil {
@@ -1233,11 +1233,9 @@ loop:
 
 				p.numErrors++
 				p.sync(s)
+			} else {
+				p.appendToBlock(ast, n)
 			}
-
-			p.appendToBlock(ast, n)
-		case lexer.TokenEol:
-			p.consumeToks(s) // Skip the newline
 		case lexer.TokenStruct:
 			n, err := p.parseStructToks(s)
 			if err != nil {
@@ -1245,9 +1243,9 @@ loop:
 
 				p.numErrors++
 				p.sync(s)
+			} else {
+				p.appendToBlock(ast, n)
 			}
-
-			p.appendToBlock(ast, n)
 		case lexer.TokenImport:
 			n, err := p.parseImportToks(s)
 			if err != nil {
@@ -1255,10 +1253,12 @@ loop:
 
 				p.numErrors++
 				p.sync(s)
+			} else {
+				p.appendToBlock(ast, n)
 			}
-
-			p.appendToBlock(ast, n)
 		case lexer.TokenSemi:
+			p.consumeToks(s)
+		case lexer.TokenEol:
 			p.consumeToks(s)
 		default:
 			fmt.Printf("kscript: %s: %s:%d:%d: unexpected token %s\n", color.RedString("error"), p.file, t.Line, t.Column, t.Type)
