@@ -98,6 +98,8 @@ func TestBuiltInTypes(t *testing.T) {
 		{"U32", "U32", TokenU32},
 		{"U16", "U16", TokenU16},
 		{"U8", "U8", TokenU8},
+		{"F64", "F64", TokenF64},
+		{"F32", "F32", TokenF32},
 		{"Any", "Any", TokenAny},
 		{"Arr", "Arr", TokenArr},
 	}
