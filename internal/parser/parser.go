@@ -184,7 +184,7 @@ func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int, allowLi
 	} else if p.currentToks(s).Type == lexer.TokenOpenBrack {
 		if !allowListInits {
 			c := p.currentToks(s)
-			return nil, fmt.Errorf("%s:%d:%d: making a list initializer here is not allowed\n\t%s: wrap it in parentheses", p.file, c.Line, c.Column, color.BlueString("fix"))
+			return nil, fmt.Errorf("%s:%d:%d: making a list initializer here is not allowed\n\t%s: wrap the list init in parentheses", p.file, c.Line, c.Column, color.BlueString("fix"))
 		}
 
 		left, err = p.parseListInit(s)
@@ -193,26 +193,38 @@ func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int, allowLi
 		}
 	} else if p.isCurrentBuiltInTypeToks(s) ||
 		(p.currentToks(s).Type == lexer.TokenLiteral &&
-			p.peekToks(s).Type == lexer.TokenOpenBrack) && (allowListInits || p.isCurrentBuiltInTypeToks(s)) {
+			p.peekToks(s).Type == lexer.TokenOpenBrack) {
 
 		typeToken := p.currentToks(s).Type
+
+		// A type/name followed by '{' is an initializer.
+		isInitializer := p.peekToks(s).Type == lexer.TokenOpenBrack &&
+			(p.isCurrentBuiltInTypeToks(s) ||
+				typeToken == lexer.TokenLiteral)
+
+		if isInitializer && !allowListInits {
+			c := p.currentToks(s)
+			return nil, fmt.Errorf(
+				"%s:%d:%d: initializer is not allowed here\n\t%s: wrap the initializer in parentheses",
+				p.file, c.Line, c.Column, color.BlueString("fix"),
+			)
+		}
+
 		nType, err := p.convertType(s)
 		if err != nil {
 			return nil, err
 		}
 
-		if allowListInits &&
-			p.currentToks(s).Type == lexer.TokenOpenBrack &&
-			(typeToken == lexer.TokenArr || typeToken == lexer.TokenLiteral) {
+		if isInitializer && p.currentToks(s).Type == lexer.TokenOpenBrack {
 			left, err = p.parseListInit(s)
 			if err != nil {
 				return nil, err
 			}
+
 			left.Left = nType
 		} else {
 			left = nType
 		}
-
 	} else if !allowListInits &&
 		p.currentToks(s).Type == lexer.TokenLiteral &&
 		p.peekToks(s).Type == lexer.TokenOpenBrack &&
@@ -223,7 +235,7 @@ func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int, allowLi
 
 		c := p.currentToks(s)
 		return nil, fmt.Errorf(
-			"%s:%d:%d: making a list initializer here is not allowed\n\t%s: wrap it in parentheses",
+			"%s:%d:%d: making a list initializer here is not allowed\n\t%s: wrap the list init in parentheses",
 			p.file, c.Line, c.Column, color.BlueString("fix"),
 		)
 
@@ -1074,22 +1086,52 @@ func (p *Parser) GetErrors() int {
 
 // Will advance the stream until a safe place to continue parsing is reached
 func (p *Parser) sync(s *TokenStream) {
-	p.consumeToks(s)
+	depth := 0
 
-	for p.currentToks(s).Type != lexer.TokenEof {
-		c := p.currentToks(s).Type
-		if c == lexer.TokenSemi || c == lexer.TokenClosedBrack {
+	for {
+		t := p.currentToks(s)
+
+		if t.Type == lexer.TokenEof {
+			return
+		}
+
+		switch t.Type {
+		case lexer.TokenOpenBrack:
+			depth++
 			p.consumeToks(s)
-			return
-		}
 
-		switch p.currentToks(s).Type {
-		case lexer.TokenVar, lexer.TokenVal, lexer.TokenIf,
-			lexer.TokenElsif, lexer.TokenElse, lexer.TokenStruct:
-			return
-		}
+		case lexer.TokenClosedBrack:
+			if depth > 0 {
+				depth--
+				p.consumeToks(s)
+				continue
+			}
 
-		p.consumeToks(s)
+			// Don't consume the enclosing scope's closing brace
+			return
+
+		case lexer.TokenSemi:
+			if depth == 0 {
+				p.consumeToks(s)
+				return
+			}
+			p.consumeToks(s)
+
+		default:
+			// If we reach a new statement at the top level,
+			// let the main parser handle it
+			if depth == 0 {
+				switch t.Type {
+				case lexer.TokenVar, lexer.TokenVal,
+					lexer.TokenIf, lexer.TokenElsif,
+					lexer.TokenElse, lexer.TokenStruct,
+					lexer.TokenImport:
+					return
+				}
+			}
+
+			p.consumeToks(s)
+		}
 	}
 }
 
