@@ -17,11 +17,14 @@ const (
 	NodeElsifStatement  // elsif statement
 	NodeElseStatement   // else statement
 	NodeImportStatement // import statement
+	NodeWhenStatement   // when statement
 
 	NodeModuleImport // module import
 	NodeModulePath   // module path
 
-	NodeScope // scope
+	NodeWhenArm     // when arm
+	NodeWhenElseArm // when else arm
+	NodeScope       // scope
 
 	NodeFieldDec  // field dec
 	NodeStructDec // struct dec

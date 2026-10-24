@@ -406,7 +406,7 @@ func (p *Parser) convertType(s *TokenStream) (*Node, error) {
 		}
 
 		elementType, cerr := p.convertType(s)
-		if err != nil {
+		if cerr != nil {
 			return nil, cerr
 		}
 
@@ -431,7 +431,7 @@ func (p *Parser) parseVarToks(s *TokenStream) (*Node, *ParserError) {
 	if err != nil {
 		c := p.currentToks(s)
 		return nil, &ParserError{
-			What: fmt.Errorf("%s:%d:%d: expected a name for variable (example var %s), got '%s'", p.file, c.Line, c.Column, color.GreenString("butterfly"), c),
+			What: fmt.Errorf("%s:%d:%d: expected a name for variable (example: var %s), got '%s'", p.file, c.Line, c.Column, color.GreenString("butterfly"), c),
 		}
 	}
 
@@ -535,7 +535,7 @@ func (p *Parser) parseValToks(s *TokenStream) (*Node, *ParserError) {
 	if err != nil {
 		c := p.currentToks(s)
 		return nil, &ParserError{
-			What: fmt.Errorf("%s:%d:%d: expected a name for value (example val %s), got '%s'", p.file, c.Line, c.Column, color.GreenString("butterfly"), c),
+			What: fmt.Errorf("%s:%d:%d: expected a name for value (example: val %s), got '%s'", p.file, c.Line, c.Column, color.GreenString("butterfly"), c),
 		}
 	}
 
@@ -570,12 +570,12 @@ func (p *Parser) parseValToks(s *TokenStream) (*Node, *ParserError) {
 		p.consumeToks(s) // Skip the =
 
 		expr, eerr := p.parseExpressionWithMinBpToks(s, 0, true)
-		if err != nil {
+		if eerr != nil {
 			return nil, eerr
 		}
 
 		eerr = p.skipToks(s, lexer.TokenSemi)
-		if err != nil {
+		if eerr != nil {
 			return nil, eerr
 		}
 
@@ -991,7 +991,7 @@ func (p *Parser) parseImportModulePathToks(s *TokenStream) (*Node, *ParserError)
 
 	if start.Type == lexer.TokenEof {
 		return nil, &ParserError{
-			What: fmt.Errorf("%s:%d:%d: expected a module path (example import %s;), got %s", p.file, start.Line, start.Column, color.GreenString("Std.SomeMod"), start),
+			What: fmt.Errorf("%s:%d:%d: expected a module path (example: import %s;), got %s", p.file, start.Line, start.Column, color.GreenString("Std.SomeMod"), start),
 		}
 	}
 
@@ -1063,7 +1063,7 @@ func (p *Parser) parseImportToks(s *TokenStream) (*Node, *ParserError) {
 	current := p.currentToks(s)
 	if current.Type == lexer.TokenEof || current.Type == lexer.TokenSemi {
 		return nil, &ParserError{
-			What: fmt.Errorf("%s:%d:%d: expected a module path (example import %s;), got %s", p.file, current.Line, current.Column, color.GreenString("Std.SomeMod"), current),
+			What: fmt.Errorf("%s:%d:%d: expected a module path (example: import %s;), got %s", p.file, current.Line, current.Column, color.GreenString("Std.SomeMod"), current),
 		}
 	}
 
@@ -1115,15 +1115,264 @@ func (p *Parser) parseImportToks(s *TokenStream) (*Node, *ParserError) {
 	return &node, nil
 }
 
-// func (p *Parser) parseWhenToks(s *TokenStream) (*Node, error) {
-// 	start := p.consumeToks(s)
+func (p *Parser) parseWhenArm(s *TokenStream) (*Node, *ParserError) {
+	// The start of an arm in KrabbaScript is a comparison.
+	// Example:
+	//		when breakfast {
+	//			== "eggs" do cook_eggs();
+	//			^^ This
+	//		}
+	// The comparator can be instead an else, example:
+	//		when breakfast {
+	//			== "eggs" do cook_eggs();
+	//			else do Std.print("I don't know what to cook!");
+	//		}
 
-// 	err := p.expectLitToks(s)
-// 	if err != nil {
-// 		return nil, fmt.Errorf(`%s:%d:%d: expected a literal, got %s
-// 	%s: replace %s with (when %s)	`, p.file, start.Line, start.Column, start, color.BlueString("fix"), start, color.GreenString("some_var"))
-// 	}
-// }
+	start := p.currentToks(s)
+	arm := Node{
+		line:   start.Line,
+		column: start.Column,
+		Type:   NodeWhenArm,
+	}
+
+	bp, ok := p.bindings[start.Type]
+	if !ok && start.Type != lexer.TokenElse {
+		return nil, &ParserError{
+			What: fmt.Errorf("%s:%d:%d: expected a comparison (like: %s or an else), got %s", p.file, start.Line, start.Column,
+				color.GreenString("==, !="), start),
+		}
+	}
+	if bp.BindingPrecedence != PrecedenceComparison && start.Type != lexer.TokenElse {
+		return nil, &ParserError{
+			What: fmt.Errorf("%s:%d:%d: expected a comparison (like: %s), got %s", p.file, start.Line, start.Column,
+				color.GreenString("== \"krabba\""), start),
+		}
+	}
+
+	if start.Type == lexer.TokenElse {
+		p.consumeToks(s)
+
+		body, err := p.parseWhenDo(s, start)
+		if err != nil {
+			return nil, err
+		}
+
+		return &Node{
+			line:   start.Line,
+			column: start.Column,
+			Type:   NodeWhenElseArm,
+			Right:  body,
+		}, nil
+	}
+
+	p.consumeToks(s)
+
+	arm.Left = &Node{
+		line:   start.Line,
+		column: start.Column,
+		Type:   NodeBinOp,
+		Lexeme: start.Type.String(),
+	}
+
+	err := p.expectLitToks(s)
+	if err != nil {
+		c := p.currentToks(s)
+		return nil, &ParserError{
+			What: fmt.Errorf("%s:%d:%d: expected a literal to compare against (like: %s), got %s", p.file, c.Line, c.Column,
+				color.GreenString("== \"krabba\""), c),
+		}
+	}
+
+	n, cerr := p.convertType(s)
+	if cerr != nil {
+		return nil, &ParserError{What: cerr}
+	}
+	arm.Left.Left = n
+
+	body, perr := p.parseWhenDo(s, start)
+	if perr != nil {
+		return nil, perr
+	}
+	arm.Right = body
+
+	return &arm, nil
+}
+
+func (p *Parser) parseWhenDo(s *TokenStream, armStart lexer.Token) (*Node, *ParserError) {
+	// The do acts as a separator instead of an anonymous function. Skip it
+	err := p.skipToks(s, lexer.TokenDo)
+	if err != nil {
+		return nil, err
+	}
+
+	// The arm body can be both a scope and a 1 liner. Example:
+	// when breakfast {
+	//		== "eggs" do cookEggs();
+	//		== "coffee 'n sandwich" do {
+	//			brew_coffee();
+	//			make_sandwich();
+	//		}
+	// }
+	if p.currentToks(s).Type == lexer.TokenOpenBrack {
+		return p.parseScopeToks(s)
+	}
+
+	var toks []lexer.Token
+	for {
+		t := p.currentToks(s)
+		if t.Type == lexer.TokenEof || t.Type == lexer.TokenEol {
+			break
+		}
+		toks = append(toks, t)
+		p.consumeToks(s)
+	}
+
+	if p.currentToks(s).Type == lexer.TokenEol {
+		p.consumeToks(s)
+	}
+
+	eofLine, eofCol := armStart.Line, armStart.Column
+	if len(toks) > 0 {
+		last := toks[len(toks)-1]
+		eofLine, eofCol = last.Line, last.Column
+	}
+	toks = append(toks, lexer.Token{Line: eofLine, Column: eofCol, Type: lexer.TokenEof})
+
+	body, _ := p.ParseToks(&TokenStream{toks: toks, pos: 0})
+	body.Type = NodeScope
+	return body, nil
+}
+
+func (p *Parser) parseWhenArms(s *TokenStream) ([]*Node, *ParserError) {
+	var arms []*Node
+	for {
+		// Remove all EOLs
+		for p.currentToks(s).Type == lexer.TokenEol {
+			p.consumeToks(s)
+		}
+
+		t := p.currentToks(s)
+		if t.Type == lexer.TokenEof {
+			return arms, nil
+		}
+
+		arm, err := p.parseWhenArm(s)
+		if err != nil {
+			return nil, err
+		}
+
+		if arm.Type == NodeWhenElseArm {
+			for p.currentToks(s).Type == lexer.TokenEol {
+				p.consumeToks(s)
+			}
+			if next := p.currentToks(s); next.Type != lexer.TokenEof {
+				return nil, &ParserError{
+					What: fmt.Errorf("%s:%d:%d: unreachable arm after 'else'", p.file, next.Line, next.Column),
+					Fix:  "the else arm must be the last arm of a when",
+				}
+			}
+			return append(arms, arm), nil
+		}
+		arms = append(arms, arm)
+	}
+}
+
+func (p *Parser) parseWhenToks(s *TokenStream) (*Node, *ParserError) {
+	start := p.consumeToks(s)
+
+	node := Node{
+		line:      start.Line,
+		column:    start.Column,
+		Type:      NodeWhenStatement,
+		ExtraInfo: &NodeInfoBlock{},
+	}
+
+	err := p.expectLitToks(s)
+	if err != nil {
+		c := p.currentToks(s)
+		return nil, &ParserError{
+			What: fmt.Errorf("%s:%d:%d: expected a literal after 'when', got %s", p.file, c.Line, c.Column, c),
+			Fix:  fmt.Sprintf("put a literal after 'when' (example: when %s { ... })", color.GreenString("butterfly_type")),
+		}
+	}
+
+	lit := p.consumeToks(s)
+	node.Right = &Node{
+		line:   lit.Line,
+		column: lit.Column,
+		Type:   NodeLit,
+		Lexeme: lit.Value,
+	}
+
+	err = p.expectToks(s, lexer.TokenOpenBrack)
+	if err != nil {
+		return nil, err
+	}
+
+	scopeStart := p.consumeToks(s)
+
+	depth := 0
+	var toks []lexer.Token
+
+	for {
+		t := p.currentToks(s)
+		if t.Type == lexer.TokenEof {
+			return nil, &ParserError{
+				What: fmt.Errorf("%s:%d:%d: unclosed bracket", p.file, scopeStart.Line, scopeStart.Column),
+			}
+		}
+
+		if t.Type == lexer.TokenOpenBrack {
+			depth++
+		} else if t.Type == lexer.TokenClosedBrack {
+			if depth == 0 {
+				break
+			}
+			depth--
+		}
+
+		toks = append(toks, t)
+		p.consumeToks(s)
+	}
+
+	p.consumeToks(s) // Cnsume the closing brack
+
+	// Append an EOF by getting the last element to use it as the line and column
+	if len(toks) == 0 {
+		// No EOF, use the startScope var
+		toks = append(toks, lexer.Token{
+			Line:   scopeStart.Line,
+			Column: scopeStart.Column,
+			Type:   lexer.TokenEof,
+		})
+	} else {
+		last := toks[len(toks)-1]
+
+		toks = append(toks, lexer.Token{
+			Line:   last.Line,
+			Column: last.Column,
+			Type:   lexer.TokenEof,
+		})
+	}
+
+	// Create a new stream with an EOF for the parseWhenArms
+	stream := TokenStream{
+		toks: toks,
+		pos:  0, // Boilerplate
+	}
+
+	arms, err := p.parseWhenArms(&stream)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add all of the arms to the when statement
+	for _, arm := range arms {
+		p.appendToBlock(&node, arm)
+	}
+
+	return &node, nil
+}
 
 func (p *Parser) appendToBlock(block *Node, node *Node) {
 	switch v := block.ExtraInfo.(type) {
@@ -1173,7 +1422,7 @@ func (p *Parser) sync(s *TokenStream) {
 				case lexer.TokenVar, lexer.TokenVal,
 					lexer.TokenIf, lexer.TokenElsif,
 					lexer.TokenElse, lexer.TokenStruct,
-					lexer.TokenImport:
+					lexer.TokenImport, lexer.TokenWhen:
 					return
 				}
 			}
@@ -1247,6 +1496,14 @@ loop:
 			}
 		case lexer.TokenImport:
 			n, err := p.parseImportToks(s)
+			if err != nil {
+				p.errors = append(p.errors, *err)
+				p.sync(s)
+			} else {
+				p.appendToBlock(ast, n)
+			}
+		case lexer.TokenWhen:
+			n, err := p.parseWhenToks(s)
 			if err != nil {
 				p.errors = append(p.errors, *err)
 				p.sync(s)
