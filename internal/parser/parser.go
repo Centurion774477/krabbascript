@@ -227,7 +227,7 @@ func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int, allowLi
 		if isInitializer && p.currentToks(s).Type == lexer.TokenOpenBrack {
 			var lerr *ParserError
 			left, lerr = p.parseListInit(s)
-			if err != nil {
+			if lerr != nil {
 				return nil, lerr
 			}
 
