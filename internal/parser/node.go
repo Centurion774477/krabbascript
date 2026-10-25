@@ -39,6 +39,7 @@ const (
 	// Compiler stuff
 	NodeRoot     // root
 	NodeBinOp    // bin op
+	NodeUnary    // unary
 	NodeNumLit   // num lit
 	NodeFloatLit // float lit
 	NodeLit      // lit
