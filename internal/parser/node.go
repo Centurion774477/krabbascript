@@ -26,7 +26,8 @@ const (
 	NodeWhenElseArm // when else arm
 	NodeScope       // scope
 
-	NodeReturn // return
+	NodeReturn            // return
+	NodeAnonymousFunction // anonymous function
 
 	NodeFieldDec  // field dec
 	NodeStructDec // struct dec
