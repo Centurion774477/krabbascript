@@ -191,7 +191,7 @@ func (tt TokenType) String() string {
 		TokenFloatLiteral: "float literal",
 		TokenNone:         "none",
 		TokenEof:          "eof",
-		TokenEol:          "eol",
+		TokenEol:          "newline",
 	}
 
 	if int(tt) >= 0 && int(tt) < len(tokens) {
