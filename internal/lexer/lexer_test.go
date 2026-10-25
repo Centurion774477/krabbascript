@@ -186,7 +186,7 @@ func TestVariableDeclaration(t *testing.T) {
 }
 
 func TestFunctionDeclaration(t *testing.T) {
-	input := `func add(a: I32, b: I32) -> I32 { ret a + b; }`
+	input := `func add(a: I32, b: I32) -> I32 { return a + b; }`
 
 	expected := []expectedToken{
 		{TokenFunc, ""},
