@@ -26,6 +26,8 @@ const (
 	NodeWhenElseArm // when else arm
 	NodeScope       // scope
 
+	NodeReturn // return
+
 	NodeFieldDec  // field dec
 	NodeStructDec // struct dec
 	NodeListInit  // list init

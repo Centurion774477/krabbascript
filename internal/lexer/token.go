@@ -10,7 +10,7 @@ const (
 	TokenVal
 	TokenFunc
 	TokenMod
-	TokenRet
+	TokenReturn
 
 	TokenIf
 	TokenElsif
@@ -116,7 +116,7 @@ func (tt TokenType) String() string {
 		TokenVal:    "val",
 		TokenFunc:   "func",
 		TokenMod:    "mod",
-		TokenRet:    "ret",
+		TokenReturn: "return",
 		TokenIf:     "if",
 		TokenElsif:  "elsif",
 		TokenElse:   "else",
