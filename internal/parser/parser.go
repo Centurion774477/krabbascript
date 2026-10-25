@@ -1574,6 +1574,32 @@ func (p *Parser) parseFunctionToks(s *TokenStream) (*Node, *ParserError) {
 	}
 }
 
+func (p *Parser) parseReturnToks(s *TokenStream) (*Node, *ParserError) {
+	start := p.consumeToks(s)
+
+	// Returns, well, return an expression. Example:
+	// return 2 + 2;
+
+	expr, err := p.parseExpressionWithMinBpToks(s, 0, true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = p.skipToks(s, lexer.TokenSemi)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := Node{
+		line:   start.Line,
+		column: start.Column,
+		Type:   NodeReturn,
+		Right:  expr,
+	}
+
+	return &ret, nil
+}
+
 func (p *Parser) appendToBlock(block *Node, node *Node) {
 	switch v := block.ExtraInfo.(type) {
 	case *NodeInfoBlock:
@@ -1712,6 +1738,14 @@ loop:
 			}
 		case lexer.TokenFunc:
 			n, err := p.parseFunctionToks(s)
+			if err != nil {
+				p.errors = append(p.errors, *err)
+				p.sync(s)
+			} else {
+				p.appendToBlock(ast, n)
+			}
+		case lexer.TokenReturn:
+			n, err := p.parseReturnToks(s)
 			if err != nil {
 				p.errors = append(p.errors, *err)
 				p.sync(s)
