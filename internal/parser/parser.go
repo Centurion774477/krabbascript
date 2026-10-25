@@ -55,6 +55,8 @@ func newBindings() map[lexer.TokenType]Binding {
 		lexer.TokenOpenParen:   {BindingPrecedence: PrecedencePostfix, BindingSide: LeftSide},
 		lexer.TokenOpenSqBrack: {BindingPrecedence: PrecedencePostfix, BindingSide: LeftSide},
 		lexer.TokenDot:         {BindingPrecedence: PrecedencePostfix, BindingSide: LeftSide},
+		lexer.TokenPlusPlus:    {BindingPrecedence: PrecedencePostfix, BindingSide: LeftSide},
+		lexer.TokenMinusMinus:  {BindingPrecedence: PrecedencePostfix, BindingSide: LeftSide},
 	}
 }
 
@@ -169,6 +171,7 @@ func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int, allowLi
 	var left *Node
 	if err != nil {
 		c := p.currentToks(s)
+
 		return nil, &ParserError{
 			What: fmt.Errorf("%s:%d:%d: expected an expression, got '%s'", p.file, c.Line, c.Column, c),
 		}
@@ -227,7 +230,7 @@ func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int, allowLi
 
 		p.consumeToks(s)
 
-		expr, err := p.parseExpressionWithMinBpToks(s, 7, allowListInits, allowAnonymousFuncs)
+		expr, err := p.parseExpressionWithMinBpToks(s, int(PrecedenceUnary), allowListInits, allowAnonymousFuncs)
 		if err != nil {
 			return nil, err
 		}
@@ -244,7 +247,7 @@ func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int, allowLi
 
 		p.consumeToks(s)
 
-		expr, err := p.parseExpressionWithMinBpToks(s, 7, allowListInits, allowAnonymousFuncs)
+		expr, err := p.parseExpressionWithMinBpToks(s, int(PrecedenceUnary), allowListInits, allowAnonymousFuncs)
 		if err != nil {
 			return nil, err
 		}
@@ -343,34 +346,84 @@ func (p *Parser) parseExpressionWithMinBpToks(s *TokenStream, minBp int, allowLi
 			break
 		}
 
-		p.consumeToks(s)
-		nodeOp := &Node{
-			line:   op.Line,
-			column: op.Column,
-			Type:   NodeBinOp,
+		switch op.Type {
+		case lexer.TokenPlusPlus, lexer.TokenMinusMinus:
+			p.consumeToks(s)
 
-			Lexeme: op.Type.String(),
-		}
+			if left.Lexeme != lexer.TokenDot.String() && left.Type != NodeIndex && left.Type != NodeLit {
+				return nil, &ParserError{
+					What: fmt.Errorf(
+						"%s:%d:%d: cannot apply '%s' to a non-assignable expression",
+						p.file, op.Line, op.Column, op.Type,
+					),
+					Fix: "only variables, fields (a.b.c) and indexed elements (a[0]) can be incremented or decremented",
+				}
+			}
 
-		var right *Node
-		var err *ParserError
+			nodeOp := &Node{
+				line:   op.Line,
+				column: op.Column,
+				Type:   NodeUnary,
+				Right:  left,
 
-		if bp.BindingSide == RightSide {
-			right, err = p.parseExpressionWithMinBpToks(s, int(bp.BindingPrecedence-1), allowListInits, allowAnonymousFuncs)
+				Lexeme: op.Type.String(),
+			}
+
+			left = nodeOp
+		case lexer.TokenOpenSqBrack:
+			p.consumeToks(s)
+
+			index, err := p.parseExpressionWithMinBpToks(s, 0, false, false)
 			if err != nil {
 				return nil, err
 			}
-		} else {
-			right, err = p.parseExpressionWithMinBpToks(s, int(bp.BindingPrecedence), allowListInits, allowAnonymousFuncs)
+
+			err = p.skipToks(s, lexer.TokenClosedSqBrack)
 			if err != nil {
 				return nil, err
 			}
+
+			nodeOp := &Node{
+				line:   op.Line,
+				column: op.Column,
+				Type:   NodeIndex,
+				Left:   left,
+				Right:  index,
+
+				Lexeme: op.Type.String(),
+			}
+
+			left = nodeOp
+		default:
+			p.consumeToks(s)
+			nodeOp := &Node{
+				line:   op.Line,
+				column: op.Column,
+				Type:   NodeBinOp,
+
+				Lexeme: op.Type.String(),
+			}
+
+			var right *Node
+			var err *ParserError
+
+			if bp.BindingSide == RightSide {
+				right, err = p.parseExpressionWithMinBpToks(s, int(bp.BindingPrecedence-1), allowListInits, allowAnonymousFuncs)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				right, err = p.parseExpressionWithMinBpToks(s, int(bp.BindingPrecedence), allowListInits, allowAnonymousFuncs)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			nodeOp.Left = left
+			nodeOp.Right = right
+
+			left = nodeOp
 		}
-
-		nodeOp.Left = left
-		nodeOp.Right = right
-
-		left = nodeOp
 	}
 
 	return left, nil
