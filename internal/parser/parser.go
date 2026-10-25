@@ -2,7 +2,8 @@ package parser
 
 import (
 	"fmt"
-	"kscript/internal/lexer"
+
+	"github.com/KrabbaTek/krabbascript/internal/lexer"
 
 	"github.com/fatih/color"
 )
