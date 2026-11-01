@@ -115,6 +115,8 @@ var buildCmd = &cobra.Command{
 }
 
 func init() {
+	// add --format flag
 	buildCmd.Flags().Bool("format", false, "Insert semicolons before building.")
+	
 	rootCmd.AddCommand(buildCmd)
 }
